@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <carousel>
+  <colour>#2d1450</colour>
   <slide id="1" expires="">
     <title>Maintenence Outage</title>
     <text>Notifications for outages will also be here in future</text>
