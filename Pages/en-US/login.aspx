@@ -334,138 +334,58 @@
     
 
 </script>
-
 <!doctype html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title><%= AntiXssEncoder.HtmlEncode(L_CompanyName_Text, false) %> - Sign in</title>
-    <link href="../css/bootstrap.min.css" rel="stylesheet" />
-    <script src="../webscripts-domain.js"></script>
-    <style>
-        html, body { min-height:100%; }
-        body {
-            min-height:100vh;
-            background:
-                linear-gradient(rgba(0,0,0,.18),rgba(0,0,0,.18)),
-                url('../images/EnglandBigV2.jpg') center center/cover fixed no-repeat;
-        }
-        .page-wrap { min-height:100vh; display:flex; align-items:center; }
-        .brand-panel { color:#fff; text-align:center; text-shadow:0 1px 3px rgba(0,0,0,.35); }
-        .brand-panel img { width:min(300px,75%); height:auto; }
-        .login-panel {
-            background:rgba(255,255,255,.88);
-            border-radius:1rem;
-            padding:2rem;
-            box-shadow:0 .5rem 2rem rgba(0,0,0,.18);
-        }
-        .form-control { background:rgba(255,255,255,.8); }
-    </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title><%=AntiXssEncoder.HtmlEncode(L_CompanyName_Text, false)%> - Login</title>
+<link href="../css/bootstrap.min.css" rel="stylesheet" />
+<script src="../webscripts-domain.js"></script>
+<style>
+html,body{min-height:100%} body{min-height:100vh;background:url('../images/EnglandBigV2.jpg') center/cover fixed no-repeat}
+.page-wrap{min-height:100vh;display:flex;align-items:center}.brand{color:#fff;text-align:center}.brand img{width:300px;max-width:75%}
+.login-panel{background:rgba(255,255,255,.72);border-radius:1rem;padding:2rem;max-width:520px;margin:auto}.wrng{color:#b02a37}
+</style>
 </head>
-<body>
-<div class="container page-wrap py-5">
-    <div class="row g-5 align-items-center w-100">
-        <div class="col-lg-6 brand-panel">
-            <div class="h2 mb-4"><%= AntiXssEncoder.HtmlEncode(domainNameC, false) %></div>
-            <img src="../images/crownCopyTransparentW.png" alt="Rural Payments Agency" />
-            <div class="h2 mt-3">Rural Payments Agency</div>
-        </div>
-
-        <div class="col-lg-6">
-            <div class="login-panel mx-auto" style="max-width:520px">
-                <h1 class="h2 text-center mb-4">Login</h1>
-
-                <% if (bFailedLogon) { %>
-                    <div class="alert alert-danger"><%= L_LogonFailureLabel_Text %></div>
-                <% } %>
-                <% if (bFailedAuthorization || bFailedAuthorizationOverride) { %>
-                    <div class="alert alert-danger"><%= L_AuthorizationFailureLabel_Text %></div>
-                <% } %>
-                <% if (bServerConfigChanged) { %>
-                    <div class="alert alert-warning"><%= L_ServerConfigChangedLabel_Text %></div>
-                <% } %>
-                <% if (bWorkspaceInUse) { %>
-                    <div class="alert alert-warning"><%= L_ExistingWorkspaceLabel_Text %></div>
-                <% } %>
-                <% if (bWorkspaceDisconnected) { %>
-                    <div class="alert alert-warning"><%= L_DisconnectedWorkspaceLabel_Text %></div>
-                <% } %>
-                <% if (bPasswordExpired) { %>
-                    <div class="alert alert-warning">
-                        <%= L_PasswordExpiredChangeBeginning_Text %><a href="password.aspx<%= SecurityElement.Escape(strPasswordExpiredQueryString) %>"><%= L_PasswordExpiredChangeLink_Text %></a><%= L_PasswordExpiredChangeEnding_Text %>
-                    </div>
-                <% } %>
-                <% if (bPasswordExpiredNoChange) { %>
-                    <div class="alert alert-warning"><%= L_PasswordExpiredNoChange_Text %></div>
-                <% } %>
-
-                <form autocomplete="off" id="FrmLogin" name="FrmLogin"
-                      action="login.aspx<%= SecurityElement.Escape(strReturnUrl) %>"
-                      method="post" onsubmit="return onLoginFormSubmit();">
-
-                    <input type="hidden" name="WorkSpaceID" value="<%= SecurityElement.Escape(strWorkSpaceID) %>" />
-                    <input type="hidden" name="RDPCertificates" value="<%= SecurityElement.Escape(strRDPCertificates) %>" />
-                    <input type="hidden" name="PublicModeTimeout" value="<%= SecurityElement.Escape(strPublicModeTimeout) %>" />
-                    <input type="hidden" name="PrivateModeTimeout" value="<%= SecurityElement.Escape(strPrivateModeTimeout) %>" />
-                    <input type="hidden" name="WorkspaceFriendlyName" value="<%= AntiXssEncoder.UrlEncode(L_CompanyName_Text) %>" />
-                    <input type="hidden" name="EventLogUploadAddress" value="<%= SecurityElement.Escape(strEventLogUploadAddress) %>" />
-                    <input type="hidden" name="RedirectorName" value="<%= SecurityElement.Escape(strRedirectorName) %>" />
-                    <input type="hidden" name="ClaimsHint" value="<%= SecurityElement.Escape(strClaimsHint) %>" />
-                    <input type="hidden" name="ClaimsToken" value="" />
-                    <input type="hidden" name="isUtf8" value="1" />
-                    <input type="hidden" name="flags" value="0" />
-                    <input type="hidden" name="MachineType" id="MachineType" value="private" />
-
-                    <div id="clientError" class="alert alert-danger d-none">
-                        Enter a valid domain user name and password.
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label" for="DomainUserName"><%= L_DomainUserNameLabel_Text %></label>
-                        <input class="form-control form-control-lg" id="DomainUserName"
-                               name="DomainUserName" type="text" autocomplete="username" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label" for="UserPass"><%= L_PasswordLabel_Text %></label>
-                        <input class="form-control form-control-lg" id="UserPass"
-                               name="UserPass" type="password" autocomplete="current-password" />
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="form-label" for="SecurityCode">Security Code</label>
-                        <input class="form-control form-control-lg" id="SecurityCode"
-                               name="securitycode" type="text" inputmode="numeric"
-                               autocomplete="one-time-code" />
-                    </div>
-
-                    <input type="hidden" id="SymcUserName" value="DomainUserName=" />
-
-                    <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-                        <button type="submit" class="btn btn-secondary btn-lg px-4">Sign in</button>
-                        <a class="btn btn-outline-secondary btn-lg px-4" href="rap-help.htm">Help</a>
-                    </div>
-                </form>
-
-                <hr class="my-4" />
-                <p class="small text-muted text-center mb-0"><%= L_TSWATimeoutLabel_Text %></p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-window.addEventListener("load", function () {
-    if (typeof onLoginPageLoad === "function") {
-        onLoginPageLoad(window.event);
-    }
-    var user = document.getElementById("DomainUserName");
-    if (user) user.focus();
-});
-window.addEventListener("unload", function (e) {
-    if (typeof onPageUnload === "function") onPageUnload(e);
-});
-</script>
-</body>
-</html>
+<body onload="onLoginPageLoad(event)" onunload="onPageUnload(event)">
+<div class="container page-wrap py-5"><div class="row g-5 align-items-center w-100">
+<div class="col-lg-6 brand"><div class="h2 mb-4"><%=domainNameC%></div><img src="../images/crownCopyTransparentW.png" alt="Rural Payments Agency"/><div class="h2 mt-3">Rural Payments Agency</div></div>
+<div class="col-lg-6"><div class="login-panel">
+<form autocomplete="off" id="FrmLogin" name="FrmLogin" action="login.aspx<%=SecurityElement.Escape(strReturnUrl)%>" method="post" onsubmit="return onLoginFormSubmit()">
+<input type="hidden" name="WorkSpaceID" value="<%=SecurityElement.Escape(strWorkSpaceID)%>"/>
+<input type="hidden" name="RDPCertificates" value="<%=SecurityElement.Escape(strRDPCertificates)%>"/>
+<input type="hidden" name="PublicModeTimeout" value="<%=SecurityElement.Escape(strPublicModeTimeout)%>"/>
+<input type="hidden" name="PrivateModeTimeout" value="<%=SecurityElement.Escape(strPrivateModeTimeout)%>"/>
+<input type="hidden" name="WorkspaceFriendlyName" value="<%=AntiXssEncoder.UrlEncode(L_CompanyName_Text)%>"/>
+<input type="hidden" name="EventLogUploadAddress" value="<%=SecurityElement.Escape(strEventLogUploadAddress)%>"/>
+<input type="hidden" name="RedirectorName" value="<%=SecurityElement.Escape(strRedirectorName)%>"/>
+<input type="hidden" name="ClaimsHint" value="<%=SecurityElement.Escape(strClaimsHint)%>"/>
+<input type="hidden" name="ClaimsToken" value=""/>
+<input name="isUtf8" type="hidden" value="1"/><input type="hidden" name="flags" value="0"/>
+<div id="tableLoginDisabled" style="display:none"><div id="trWrongAxVersion" style="display:none"><span class="wrng"><%=L_WrongAxVersionWarningLabel_Text%></span></div><div id="trUnsupportedBrowser" style="display:none"><span class="wrng"><%=L_UnsupportedBrowserWarningLabel_Text%></span></div><div id="trSupportedBrowserAxLoadError" style="display:none"><span class="wrng"><%=L_SupportedBrowserAxLoadErrorLabel_Text%></span></div><div id="trCookiesDisabled" style="display:none"><span class="wrng"><%=L_CookiesDisabledWarningLabel_Text%></span></div></div>
+<div id="tableLoginForm"><h2 class="text-center mb-4">Login</h2>
+<div class="mb-3"><label for="DomainUserName" class="form-label"><%=L_DomainUserNameLabel_Text%></label><input id="DomainUserName" name="DomainUserName" type="text" runat="server" autocomplete="off" class="form-control form-control-lg"/></div>
+<div class="mb-3"><label for="UserPass" class="form-label"><%=L_PasswordLabel_Text%></label><input id="UserPass" name="UserPass" type="password" runat="server" autocomplete="off" class="form-control form-control-lg"/></div>
+<div class="mb-4"><label for="SecurityCode" class="form-label">Security Code</label><input id="SecurityCode" name="securitycode" type="text" runat="server" autocomplete="off" class="form-control form-control-lg"/></div>
+<input id="SymcUserName" value="DomainUserName=" runat="server" size="25" style="display:none;"/>
+<div class="d-flex justify-content-center gap-3"><input type="submit" class="btn btn-secondary btn-lg" id="btnSignIn" value="Sign in"/><input type="button" class="btn btn-outline-secondary btn-lg" id="btnHelp" onclick="onClickHelp()" value="Help"/></div>
+<% strErrorMessageRowStyle=bPasswordExpiredNoChange?"":"display:none"; %><div id="trPasswordExpiredNoChange" style="<%=strErrorMessageRowStyle%>" class="alert alert-warning mt-3"><%=L_PasswordExpiredNoChange_Text%></div>
+<% strErrorMessageRowStyle=bPasswordExpired?"":"display:none"; %><div id="trPasswordExpired" style="<%=strErrorMessageRowStyle%>" class="alert alert-warning mt-3"><%=L_PasswordExpiredChangeBeginning_Text%><a id="passwordchangelink" href="password.aspx<%=strPasswordExpiredQueryString%>"><%=L_PasswordExpiredChangeLink_Text%></a><%=L_PasswordExpiredChangeEnding_Text%></div>
+<% strErrorMessageRowStyle=bWorkspaceInUse?"":"display:none"; %><div id="trErrorWorkSpaceInUse" style="<%=strErrorMessageRowStyle%>" class="alert alert-warning mt-3"><%=L_ExistingWorkspaceLabel_Text%></div>
+<% strErrorMessageRowStyle=bWorkspaceDisconnected?"":"display:none"; %><div id="trErrorWorkSpaceDisconnected" style="<%=strErrorMessageRowStyle%>" class="alert alert-warning mt-3"><%=L_DisconnectedWorkspaceLabel_Text%></div>
+<% strErrorMessageRowStyle=bFailedLogon?"":"display:none"; %><div id="trErrorIncorrectCredentials" style="<%=strErrorMessageRowStyle%>" class="alert alert-danger mt-3"><%=L_LogonFailureLabel_Text%></div>
+<div id="trErrorDomainNameMissing" style="display:none" class="alert alert-danger mt-3"><%=L_DomainNameMissingLabel_Text%></div>
+<% strErrorMessageRowStyle=(bFailedAuthorization||bFailedAuthorizationOverride)?"":"display:none"; %><div id="trErrorUnauthorizedAccess" style="<%=strErrorMessageRowStyle%>" class="alert alert-danger mt-3"><%=L_AuthorizationFailureLabel_Text%></div>
+<% strErrorMessageRowStyle=bServerConfigChanged?"":"display:none"; %><div id="trErrorServerConfigChanged" style="<%=strErrorMessageRowStyle%>" class="alert alert-warning mt-3"><%=L_ServerConfigChangedLabel_Text%></div>
+<div id="trErrorGenericClaimsAuthFailure" style="display:none" class="alert alert-danger mt-3"><%=L_GenericClaimsAuthErrorLabel_Text%></div>
+<div id="spanToggleSecExplanation" style="display:none"><a href="javascript:onclickExplanation('lnkShwSec')" id="lnkShwSec"><%=L_ShowExplanationLabel_Text%></a><a href="javascript:onclickExplanation('lnkHdSec')" id="lnkHdSec" style="display:none"><%=L_HideExplanationLabel_Text%></a></div>
+<div id="tablePublicOption" style="display:none"><input id="rdoPblc" type="radio" name="MachineType" value="public" onclick="onClickSecurity()"/></div>
+<div id="trPubExp" style="display:none"><%=L_PublicExplanationLabel_Text%></div>
+<div id="tablePrivateOption" style="display:none"><input id="rdoPrvt" type="radio" name="MachineType" value="private" onclick="onClickSecurity()" checked="checked"/></div>
+<div id="trPrvtExp" style="display:none"><%=L_PrivateExplanationLabel_Text%></div>
+<div id="trPrvtWrn" style="display:none"><%=L_PrivateWarningLabel_Text%></div><div id="trPrvtWrnNoAx" style="display:none"><%=L_PrivateWarningLabelNoAx_Text%></div>
+<hr/><p class="small text-muted mb-0"><%=L_TSWATimeoutLabel_Text%></p>
+</div></form></div></div></div></div>
+<script>var strBaseUrl="<%=AntiXssEncoder.JavaScriptEncode(baseUrl.AbsoluteUri, false)%>"; var strPrivacyUrl="<%=AntiXssEncoder.JavaScriptEncode(strPrivacyUrl, false)%>"; var strHelpUrl="<%=AntiXssEncoder.JavaScriptEncode(sHelpSourceServer, false)%>";</script>
+</body></html>
