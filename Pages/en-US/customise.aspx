@@ -18,7 +18,7 @@
     {
         if (!HttpContext.Current.User.Identity.IsAuthenticated) { Response.Redirect("login.aspx?ReturnUrl=" + HttpUtility.UrlEncode(Request.Path)); return; }
         if (!IsWebAdmin()) { Response.StatusCode = 403; Response.End(); return; }
-        if (Request.HttpMethod == "POST") Save();
+        if (Request.HttpMethod == "POST") { if ((Request.Form["action"] ?? "") == "reset") ResetDefaults(); else Save(); }
         LoadConfig();
     }
 
@@ -67,6 +67,17 @@
         } catch(Exception ex){ Status="Could not read configuration: "+ex.Message; }
     }
 
+    void ResetDefaults()
+    {
+        try {
+            XDocument d=new XDocument(new XElement("carousel", new XElement("colour", "#2d1450")));
+            string[] dt={ "", "Maintenence Outage", "HELP", "Security" };
+            string[] dm={ "", "Notifications for outages will also be here in future", "If you having any issues with login please click 'Help'", "Warning: By logging in to this web page, you confirm that this computer complies with your organization's security policy." };
+            for(int i=1;i<=3;i++) d.Root.Add(new XElement("slide",new XAttribute("id",i),new XAttribute("expires",""),new XElement("title",dt[i]),new XElement("text",dm[i])));
+            string path=ConfigPath(); System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)); d.Save(path); Status="Carousel settings reset to defaults.";
+        } catch(Exception ex){ Status="Reset failed: "+ex.Message; }
+    }
+
     void Save()
     {
         try {
@@ -97,4 +108,4 @@
 <div class="mb-3"><label class="form-label" for="text<%=i%>">Message</label><textarea class="form-control" id="text<%=i%>" name="text<%=i%>" rows="3" maxlength="1000"><%=HttpUtility.HtmlEncode(Texts[i])%></textarea></div>
 <div><label class="form-label" for="expires<%=i%>">Expiry date/time (optional)</label><input class="form-control" style="max-width:320px" type="datetime-local" id="expires<%=i%>" name="expires<%=i%>" value="<% DateTime ed; if(DateTime.TryParse(Expires[i],null,DateTimeStyles.RoundtripKind,out ed)){ %><%=ed.ToString("yyyy-MM-ddTHH:mm")%><% } %>"/><div class="form-text">Leave blank to keep this message until it is changed.</div></div>
 </div></div><% } %>
-<button class="btn btn-primary" type="submit">Save carousel settings</button></form></div></main></body></html>
+<div class="d-flex gap-2"><button class="btn btn-primary" type="submit" name="action" value="save">Save carousel settings</button><button class="btn btn-outline-danger" type="submit" name="action" value="reset" onclick="return confirm('Reset carousel colour and all messages to their defaults?');">Reset all to defaults</button></div></form></div></main></body></html>
