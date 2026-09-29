@@ -1,260 +1,37 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
-<% @Page Language="C#" Debug="false" ResponseEncoding="utf-8" ContentType="text/xml" Async="true"%>
-<% @Import Namespace="System.Globalization" %>
-<% @Import Namespace="System.Web.Configuration" %>
-<% @Import Namespace="System.Security" %>
-<% @Import Namespace="System.Threading.Tasks" %>
-<% @Import Namespace="System.Security.Principal" %>
-<% @Import Namespace="Microsoft.TerminalServices.Publishing.Portal.FormAuthentication" %>
-<% @Import Namespace="Microsoft.TerminalServices.Publishing.Portal" %>
-<% @Import Namespace="System.Web.Security.AntiXss" %>
-<% @Import Namespace="System.DirectoryServices" %>
-<% @Import Namespace="System.DirectoryServices.ActiveDirectory" %>
+<%@ Page Language="C#" Debug="false" ResponseEncoding="utf-8" ContentType="text/html" Async="true" %>
+<%@ Import Namespace="System" %>
+<%@ Import Namespace="System.Collections.Specialized" %>
+<%@ Import Namespace="System.Configuration" %>
+<%@ Import Namespace="System.Globalization" %>
+<%@ Import Namespace="System.Linq" %>
+<%@ Import Namespace="System.Security.Principal" %>
+<%@ Import Namespace="System.Threading.Tasks" %>
+<%@ Import Namespace="System.Web" %>
+<%@ Import Namespace="System.Web.Configuration" %>
+<%@ Import Namespace="System.Xml.Linq" %>
+<%@ Import Namespace="System.DirectoryServices" %>
+<%@ Import Namespace="System.DirectoryServices.ActiveDirectory" %>
+<%@ Import Namespace="Microsoft.TerminalServices.Publishing.Portal" %>
+<%@ Import Namespace="Microsoft.TerminalServices.Publishing.Portal.FormAuthentication" %>
 
 <script runat="server">
-
-    //
-    // Customizable Text
-    //
-    string L_CompanyName_Text = "Work Resources";
-
-    // Environment Dependant Variables (AUTO)
-    private string strLDAPPath;
-    private string domainName;
-
-    // Pasword Policy days add here
-    public static int daysToAdd = 30;
-
-    // threshold for password warning in days
-    const int PasswordExpiryThreshold = 10;
-
-    // This will be set automatically
+    public Uri baseUrl;
+    public AuthenticationMode authenticationMode = AuthenticationMode.None;
+    public string domainUserName = "";
+    public string userIdentity = "";
+    public string workspaceName = "Work Resources";
+    public string appFeed = "";
+    public int sessionTimeoutMinutes = 20;
+    public string displayName = "";
+    public string passwordExpiration = "";
     public string logonHeader = "";
-
-    //
-    // Localizable Text
-    //
-    const string L_RemoteAppProgramsLabel_Text = "RemoteApp and Desktops";
-    const string L_DesktopTab_Text = "Connect to a remote PC";
-    const string L_BadFolderErrorTitle_Text = "Folder does not exist. Redirecting...";
-    const string L_BadFolderErrorBody_Text = "You have attempted to load a folder that does not exist.  In a moment, you will be redirected to the top-level folder.";
-    const string L_RenderFailTitle_Text = "Error: Unable to display RD Web Access";
-    const string L_RenderFailP1_Text = "An unexpected error has occurred that is preventing this page from being displayed correctly.";
-    const string L_RenderFailP2_Text = "Viewing this page in Internet Explorer with the Enhanced Security Configuration enabled can cause such an error.";
-    const string L_RenderFailP3_Text = "Please try loading this page without the Enhanced Security Configuration enabled. If this error continues to be displayed, please contact your administrator.";
-
-    // Page Variables
-    //
-    public string sHelpSourceServer, sLocalHelp, sRDCInstallUrl, strWorkspaceName;
-    public Uri baseUrl, stylesheetUrl, renderFailCssUrl;
-    public bool bShowPublicCheckBox = false, bPrivateMode = false, bRTL = false;
-    public int SessionTimeoutInMinutes = 0;
-    public bool bShowOptimizeExperience = false, bOptimizeExperienceState = false;
-    public AuthenticationMode eAuthenticationMode = AuthenticationMode.None;
-    public string strTicketName = "";
-    public string strDomainUserName = "", strUserIdentity = "";
-    public string strAppFeed;
-    public string strPrivacyUrl;
-
-    public WorkspaceInfo objWorkspaceInfo = null;
-
-    // ✅ NEW: Initialize environment variables once per request
-    private void InitializeEnvironmentVariables()
-    {
-        // FQDN of the AD domain the RD Web server is joined to (e.g. wintest.local)
-        string fqdn = System.DirectoryServices.ActiveDirectory.Domain.GetCurrentDomain().Name;
-
-        // LDAP base used by DirectoryEntry
-        strLDAPPath = "LDAP://" + fqdn;
-
-        // "Short" name derived from FQDN (e.g. WINTEST)
-        domainName = fqdn.Split('.')[0].ToUpperInvariant();
-
-        // Header you display on the page
-        logonHeader = "You are logged on to " + domainName;
-    }
+    public static int daysToAdd = 30;
+    const int PasswordExpiryThreshold = 10;
 
     protected void Page_PreInit(object sender, EventArgs e)
     {
-        RegisterAsyncTask(new PageAsyncTask(GetAppsAsync));
+        RegisterAsyncTask(new PageAsyncTask(LoadResourcesAsync));
         ExecuteRegisteredAsyncTasks();
-    }
-
-    private async Task GetAppsAsync()
-    {
-        // Make sure these are populated before your XML attributes are rendered
-        InitializeEnvironmentVariables();
-
-        // gives us https://<hostname>[:port]/rdweb/pages/<lang>/
-        baseUrl = new Uri(new Uri(RequestHelper.GetOriginalRequestUri(Request), RequestHelper.GetRequestFilePath(Request)), ".");
-        TraceWrite.TraceVerboseNoContext("baseUrl.AbsoluteUri: {0}", baseUrl.AbsoluteUri);
-        TraceWrite.TraceVerboseNoContext("baseUrl.AbsolutePath: {0}", baseUrl.AbsolutePath);
-
-        strPrivacyUrl = await PageContentsHelper.GetPrivacyLinkAsync();
-
-        try
-        {
-            string strShowOptimzeExperienceValue = ConfigurationManager.AppSettings["ShowOptimizeExperience"];
-            if (String.IsNullOrEmpty(strShowOptimzeExperienceValue) == false)
-            {
-                if (strShowOptimzeExperienceValue.Equals(System.Boolean.TrueString, StringComparison.OrdinalIgnoreCase))
-                {
-                    bShowOptimizeExperience = true;
-                    string strOptimizeExperienceStateValue = ConfigurationManager.AppSettings["OptimizeExperienceState"];
-                    if (String.IsNullOrEmpty(strOptimizeExperienceStateValue) == false)
-                    {
-                        if (strOptimizeExperienceStateValue.Equals(System.Boolean.TrueString, StringComparison.OrdinalIgnoreCase))
-                        {
-                            bOptimizeExperienceState = true;
-                        }
-                    }
-                }
-            }
-        }
-        catch (Exception objException)
-        {
-        }
-
-        AuthenticationSection objAuthenticationSection = ConfigurationManager.GetSection("system.web/authentication") as AuthenticationSection;
-        if (objAuthenticationSection != null)
-        {
-            eAuthenticationMode = objAuthenticationSection.Mode;
-        }
-
-        if (eAuthenticationMode == AuthenticationMode.Forms)
-        {
-            if (HttpContext.Current.User.Identity.IsAuthenticated == false)
-            {
-                bool fQueryContainsReturnUrl = false;
-                if (Request.QueryString != null)
-                {
-                    NameValueCollection objQueryString = Request.QueryString;
-                    fQueryContainsReturnUrl = (objQueryString["ReturnUrl"] != null);
-                }
-
-                string strQueryString;
-                if (fQueryContainsReturnUrl)
-                {
-                    strQueryString = Request.Url.Query;
-                }
-                else
-                {
-                    string strReturnUrlQueryParam = "ReturnUrl=" + RequestHelper.GetOriginalRequestUri(Request).AbsolutePath;
-                    if (String.IsNullOrEmpty(Request.Url.Query))
-                    {
-                        strQueryString = "?" + strReturnUrlQueryParam;
-                    }
-                    else
-                    {
-                        strQueryString = Request.Url.Query + "&" + strReturnUrlQueryParam;
-                    }
-                }
-
-                Response.Redirect(new Uri(baseUrl, "login.aspx" + strQueryString).AbsoluteUri);
-            }
-
-            TSFormAuthTicketInfo objTSFormAuthTicketInfo = new TSFormAuthTicketInfo(HttpContext.Current);
-            strUserIdentity = objTSFormAuthTicketInfo.UserIdentity;
-            bPrivateMode = objTSFormAuthTicketInfo.PrivateMode;
-            strDomainUserName = objTSFormAuthTicketInfo.DomainUserName;
-
-            if (bPrivateMode == true)
-            {
-                try
-                {
-                    string strPrivateModeSessionTimeoutInMinutes = ConfigurationManager.AppSettings["PrivateModeSessionTimeoutInMinutes"].ToString();
-                    SessionTimeoutInMinutes = Int32.Parse(strPrivateModeSessionTimeoutInMinutes);
-                }
-                catch (Exception objException)
-                {
-                    Console.WriteLine("\nException : " + objException.Message);
-                    SessionTimeoutInMinutes = 240;
-                }
-            }
-            else
-            {
-                try
-                {
-                    string strPublicModeSessionTimeoutInMinutes = ConfigurationManager.AppSettings["PublicModeSessionTimeoutInMinutes"].ToString();
-                    SessionTimeoutInMinutes = Int32.Parse(strPublicModeSessionTimeoutInMinutes);
-                }
-                catch (Exception objException)
-                {
-                    Console.WriteLine("\nException : " + objException.Message);
-                    SessionTimeoutInMinutes = 20;
-                }
-            }
-        }
-        else if (eAuthenticationMode == AuthenticationMode.Windows)
-        {
-            bShowPublicCheckBox = true;
-            WindowsIdentity identity = (WindowsIdentity)Context.User.Identity;
-            strUserIdentity = identity.User.ToString();
-        }
-
-        sRDCInstallUrl = ConfigurationManager.AppSettings["rdcInstallUrl"];
-        sLocalHelp = ConfigurationManager.AppSettings["LocalHelp"];
-
-        stylesheetUrl = new Uri(baseUrl, "../Site.xsl");
-        renderFailCssUrl = new Uri(baseUrl, "../RenderFail.css");
-
-        if ((sLocalHelp != null) && (sLocalHelp == "true"))
-            sHelpSourceServer = "./rap-help.htm";
-        else
-            sHelpSourceServer = "http://go.microsoft.com/fwlink/?LinkId=141038";
-
-        try
-        {
-            bRTL = CultureInfo.CurrentUICulture.TextInfo.IsRightToLeft;
-        }
-        catch (NullReferenceException)
-        {
-        }
-
-        WebFeed tswf = null;
-        try
-        {
-            tswf = new WebFeed(RdpType.Both, true);
-
-            Tuple<string, int> retValues = await tswf.GenerateFeedAsync(
-                            strUserIdentity,
-                            FeedXmlVersion.Win8,
-                            (Request.PathInfo.Length > 0) ? Request.PathInfo : "/",
-                            false);
-
-            strAppFeed = retValues.Item1;
-        }
-        catch (WorkspaceUnknownFolderException)
-        {
-            BadFolderRedirect();
-        }
-        catch (InvalidTenantException)
-        {
-            Response.StatusCode = 404;
-            Response.End();
-        }
-        catch (WorkspaceUnavailableException wue)
-        {
-            Response.StatusCode = 503;
-            Response.End();
-        }
-
-        if (tswf != null)
-        {
-            objWorkspaceInfo = tswf.GetFetchedWorkspaceInfo();
-            if (objWorkspaceInfo != null)
-            {
-                strWorkspaceName = objWorkspaceInfo.WorkspaceName;
-            }
-        }
-        if (String.IsNullOrEmpty(strWorkspaceName))
-        {
-            strWorkspaceName = L_CompanyName_Text;
-        }
-    }
-
-    protected void Page_Load(object sender, EventArgs e)
-    {
     }
 
     protected void Page_Init(object sender, EventArgs e)
@@ -262,451 +39,270 @@
         Response.Cache.SetCacheability(HttpCacheability.NoCache);
     }
 
-    private void BadFolderRedirect()
+    private async Task LoadResourcesAsync()
     {
-        Response.ContentType = "text/html";
-        Response.Write(
-@"<html>
-   <head>
-     <meta http-equiv=""refresh"" content=""10;url=" + Request.FilePath + @"""/>
-     <title>" + L_BadFolderErrorTitle_Text + @"</title>
-   </head>
-   <body>
-     <p id=""BadFolder1"">" + L_BadFolderErrorBody_Text + @"</p>     
-   </body>
- </html>");
-        Response.End();
-    }
+        baseUrl = new Uri(new Uri(RequestHelper.GetOriginalRequestUri(Request),
+            RequestHelper.GetRequestFilePath(Request)), ".");
 
-    //Start Added Code 
-    private static string GetDisplayName(string strUserName, string strLDAPPath, string domainName)
-    {
-        string strFilter = string.Empty;
+        AuthenticationSection auth = ConfigurationManager.GetSection("system.web/authentication") as AuthenticationSection;
+        if (auth != null)
+            authenticationMode = auth.Mode;
 
-        string username = "";
-        // Check if username contains '@' or '\'
-        if (strUserName.Contains('@'))
+        if (authenticationMode == AuthenticationMode.Forms)
         {
-            // Split the username based on '@' to handle username@domain format
-            string[] upnParts = strUserName.Split('@');
-            username = upnParts[0];
+            if (!HttpContext.Current.User.Identity.IsAuthenticated)
+            {
+                string returnUrl = RequestHelper.GetOriginalRequestUri(Request).AbsolutePath;
+                Response.Redirect(new Uri(baseUrl,
+                    "modernlogin.aspx?ReturnUrl=" + HttpUtility.UrlEncode(returnUrl)).AbsoluteUri, true);
+                return;
+            }
+
+            TSFormAuthTicketInfo ticket = new TSFormAuthTicketInfo(HttpContext.Current);
+            userIdentity = ticket.UserIdentity;
+            domainUserName = ticket.DomainUserName;
+
+            string timeoutKey = ticket.PrivateMode
+                ? "PrivateModeSessionTimeoutInMinutes"
+                : "PublicModeSessionTimeoutInMinutes";
+
+            int parsedTimeout;
+            if (Int32.TryParse(ConfigurationManager.AppSettings[timeoutKey], out parsedTimeout))
+                sessionTimeoutMinutes = parsedTimeout;
         }
-        else if (strUserName.Contains('\\'))
+        else if (authenticationMode == AuthenticationMode.Windows)
         {
-            // Split the username based on '\\' to handle domain\username format
-            string[] upnParts = strUserName.Split('\\');
-            username = upnParts[1];
+            WindowsIdentity identity = (WindowsIdentity)Context.User.Identity;
+            userIdentity = identity.User.ToString();
+            domainUserName = identity.Name;
         }
+
+        LoadUserCustomizations();
 
         try
         {
-            string sAMAccountNameFilter = string.Format("(sAMAccountName={0})", username);
-            System.DirectoryServices.DirectoryEntry de = new System.DirectoryServices.DirectoryEntry(strLDAPPath);
-            System.DirectoryServices.DirectorySearcher ds = new System.DirectoryServices.DirectorySearcher(de);
-            ds.Filter = sAMAccountNameFilter;
-            ds.PropertiesToLoad.Add("Name");
-            Console.WriteLine(sAMAccountNameFilter);
+            WebFeed feed = new WebFeed(RdpType.Both, true);
+            Tuple<string, int> result = await feed.GenerateFeedAsync(
+                userIdentity,
+                FeedXmlVersion.Win8,
+                (Request.PathInfo.Length > 0) ? Request.PathInfo : "/",
+                false);
 
-            System.DirectoryServices.SearchResultCollection results = ds.FindAll();
+            appFeed = result.Item1;
 
-            if (results != null && results.Count > 0)
-            {
-                return results[0].Properties["Name"][0].ToString();
+            WorkspaceInfo info = feed.GetFetchedWorkspaceInfo();
+            if (info != null && !String.IsNullOrEmpty(info.WorkspaceName))
+                workspaceName = info.WorkspaceName;
+        }
+        catch (WorkspaceUnknownFolderException)
+        {
+            Response.Redirect(Request.FilePath, true);
+        }
+        catch (InvalidTenantException)
+        {
+            Response.StatusCode = 404;
+            Response.End();
+        }
+        catch (WorkspaceUnavailableException)
+        {
+            Response.StatusCode = 503;
+            Response.End();
+        }
+    }
+
+    private void LoadUserCustomizations()
+    {
+        try {
+            string fqdn = Domain.GetCurrentDomain().Name;
+            string ldapPath = "LDAP://" + fqdn;
+            string shortDomain = fqdn.Split('.')[0].ToUpperInvariant();
+            logonHeader = "You are logged on to " + shortDomain;
+            string account = domainUserName;
+            string username = account.Contains("@") ? account.Split('@')[0] : (account.Contains("\\") ? account.Split('\\')[1] : account);
+            DirectoryEntry de = new DirectoryEntry(ldapPath);
+            DirectorySearcher ds = new DirectorySearcher(de);
+            ds.Filter = "(sAMAccountName=" + username + ")";
+            ds.PropertiesToLoad.Add("Name"); ds.PropertiesToLoad.Add("pwdLastSet"); ds.PropertiesToLoad.Add("userAccountControl");
+            SearchResult result = ds.FindOne();
+            if (result != null) {
+                if (result.Properties["Name"].Count > 0) displayName = result.Properties["Name"][0].ToString();
+                long ticks, uac;
+                if (result.Properties["pwdLastSet"].Count > 0 && result.Properties["userAccountControl"].Count > 0 &&
+                    Int64.TryParse(result.Properties["pwdLastSet"][0].ToString(), out ticks) &&
+                    Int64.TryParse(result.Properties["userAccountControl"][0].ToString(), out uac)) {
+                    if ((uac & 0x10000) != 0) passwordExpiration = "Password does not expire.";
+                    else {
+                        int days = (int)Math.Ceiling((DateTime.FromFileTime(ticks).AddDays(daysToAdd) - DateTime.UtcNow).TotalDays);
+                        passwordExpiration = days < PasswordExpiryThreshold ? "Password expires in " + days + " days. Click here to reset now." : "Password expires in " + days + " days.";
+                    }
+                }
             }
-            else
+        } catch { }
+        if (String.IsNullOrEmpty(displayName)) displayName = domainUserName;
+    }
+
+    protected string RenderResources()
+    {
+        if (String.IsNullOrWhiteSpace(appFeed))
+            return "<div class=\"alert alert-warning\">No RemoteApp resources were returned.</div>";
+
+        try
+        {
+            string feedXml = appFeed.Trim();
+            if (feedXml.Length > 0 && feedXml[0] == '\uFEFF')
+                feedXml = feedXml.Substring(1).TrimStart();
+
+            // GenerateFeedAsync returns an XML fragment for the RDWeb page, not necessarily
+            // a standalone XML document. Remove any XML declaration and wrap the fragment.
+            if (feedXml.StartsWith("<?xml", StringComparison.OrdinalIgnoreCase))
             {
-                Console.WriteLine("No results found in Active Directory for query: " + sAMAccountNameFilter);
-                return "User with sAMAccountName matching '" + username + "' not found in Active Directory (LDAP Query: " + sAMAccountNameFilter + ")";
+                int declarationEnd = feedXml.IndexOf("?>", StringComparison.Ordinal);
+                if (declarationEnd >= 0)
+                    feedXml = feedXml.Substring(declarationEnd + 2);
             }
+
+            XDocument doc = XDocument.Parse("<RDWebFeedRoot>" + feedXml + "</RDWebFeedRoot>");
+            XNamespace ns = "http://schemas.microsoft.com/ts/2007/05/tswf";
+            var resources = doc.Descendants(ns + "Resource").ToList();
+
+            if (resources.Count == 0)
+                return "<div class=\"alert alert-info\">No RemoteApps or desktops are currently assigned to this account.</div>";
+
+            System.Text.StringBuilder html = new System.Text.StringBuilder();
+
+            foreach (XElement resource in resources)
+            {
+                string title = (string)resource.Attribute("Title") ?? "Remote resource";
+
+                XElement server = resource
+                    .Descendants(ns + "HostingTerminalServer")
+                    .FirstOrDefault();
+
+                XElement resourceFile = server == null
+                    ? null
+                    : server.Element(ns + "ResourceFile");
+
+                string launchUrl = resourceFile == null
+                    ? ""
+                    : ((string)resourceFile.Attribute("URL") ?? "");
+
+                string fallbackContent = resourceFile == null
+                    ? ""
+                    : (resourceFile.Element(ns + "Content") == null
+                        ? ""
+                        : resourceFile.Element(ns + "Content").Value);
+
+                XElement icon = resource
+                    .Descendants(ns + "Icon32")
+                    .FirstOrDefault(x =>
+                        ((string)x.Attribute("Dimensions") ?? "") == "32x32" &&
+                        ((string)x.Attribute("FileType") ?? "").Equals("Png", StringComparison.OrdinalIgnoreCase));
+
+                string iconUrl = icon == null ? "" : ((string)icon.Attribute("FileURL") ?? "");
+
+                if (String.IsNullOrEmpty(launchUrl) && !String.IsNullOrEmpty(fallbackContent))
+                    launchUrl = Uri.UnescapeDataString(fallbackContent);
+
+                html.Append("<div class=\"col-12 col-sm-6 col-lg-4 col-xl-3\">");
+                html.Append("<a class=\"resource-card text-decoration-none\" href=\"");
+                html.Append(HttpUtility.HtmlAttributeEncode(launchUrl));
+                html.Append("\">");
+                html.Append("<div class=\"card h-100 shadow-sm\"><div class=\"card-body d-flex align-items-center gap-3\">");
+
+                if (!String.IsNullOrEmpty(iconUrl))
+                {
+                    html.Append("<img class=\"resource-icon\" src=\"");
+                    html.Append(HttpUtility.HtmlAttributeEncode(iconUrl));
+                    html.Append("\" alt=\"\" />");
+                }
+                else
+                {
+                    html.Append("<div class=\"resource-icon-placeholder\">RDP</div>");
+                }
+
+                html.Append("<div class=\"fw-semibold text-dark\">");
+                html.Append(HttpUtility.HtmlEncode(title));
+                html.Append("</div></div></div></a></div>");
+            }
+
+            return html.ToString();
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Exception in GetDisplayName: " + ex.Message);
-            if (ex is System.DirectoryServices.DirectoryServicesCOMException)
-            {
-                return "LDAP query failed. Check LDAP path and filter. (LDAP Query: " + strFilter + ")";
-            }
-            else
-            {
-                return "An unexpected error occurred. (LDAP Query: " + strFilter + ")";
-            }
+            return "<div class=\"alert alert-danger\">The RDWeb resource feed could not be rendered. " +
+                HttpUtility.HtmlEncode(ex.Message) + "</div>";
         }
     }
-
-    private static string GetPasswordExpirationDate(string strUserName, string strLDAPPath)
-    {
-        string strFilter = string.Empty;
-
-        if (strUserName.Contains("\\"))
-        {
-            strUserName = strUserName.Substring(1 + strUserName.IndexOf("\\"));
-        }
-
-        strFilter = "(SAMAccountName=" + strUserName + ")";
-        if (strUserName.Contains("@"))
-        {
-            strFilter = "(UserPrincipalName=" + strUserName + ")";
-        }
-
-        System.DirectoryServices.DirectoryEntry de = new System.DirectoryServices.DirectoryEntry(strLDAPPath);
-        System.DirectoryServices.DirectorySearcher ds = new System.DirectoryServices.DirectorySearcher(de);
-        ds.Filter = strFilter;
-        ds.PropertiesToLoad.Add("Name");
-        ds.PropertiesToLoad.Add("pwdLastSet");
-        ds.PropertiesToLoad.Add("userAccountControl");
-        System.DirectoryServices.SearchResultCollection results = ds.FindAll();
-        long pwdLastSetTicks;
-        long userAccountControl;
-        System.DirectoryServices.ResultPropertyValueCollection pwdLastSetProp = results[0].Properties["pwdLastSet"];
-        System.DirectoryServices.ResultPropertyValueCollection userAccountControlProp = results[0].Properties["userAccountControl"];
-
-        if ((pwdLastSetProp != null && pwdLastSetProp.Count > 0 &&
-             userAccountControlProp != null && userAccountControlProp.Count > 0) &&
-            long.TryParse(pwdLastSetProp[0].ToString(), out pwdLastSetTicks) &&
-            long.TryParse(userAccountControlProp[0].ToString(), out userAccountControl))
-        {
-            DateTime pwdLastSet = DateTime.FromFileTime(pwdLastSetTicks);
-            bool passwordNeverExpires = ((userAccountControl & 0x10000) != 0);
-            if (passwordNeverExpires)
-            {
-                return "Password does not expire.";
-            }
-
-            TimeSpan timeUntilExpiration = pwdLastSet.AddDays(daysToAdd) - DateTime.UtcNow;
-            int remainingDays = (int)Math.Ceiling(timeUntilExpiration.TotalDays);
-
-            if (remainingDays < PasswordExpiryThreshold)
-            {
-                return string.Format("Password expires in {0} days. Click here to reset now.", remainingDays);
-            }
-            else
-            {
-                return string.Format("Password expires in {0} days.", remainingDays);
-            }
-        }
-
-        return "No expiration date found.";
-    }
-    // End Added Code
-
 </script>
 
-<%="<?xml-stylesheet type=\"text/xsl\" href=\"" + SecurityElement.Escape(stylesheetUrl.AbsoluteUri) + "\"?>"%>
-<%="<?xml-stylesheet type=\"text/css\" href=\"" + SecurityElement.Escape(renderFailCssUrl.AbsoluteUri) + "\"?>"%>
-
-<RDWAPage 
-    helpurl="<%=sHelpSourceServer%>" 
-    domainuser="<%=SecurityElement.Escape(strDomainUserName)%>" 
-    workspacename="<%=AntiXssEncoder.XmlAttributeEncode(strWorkspaceName)%>" 
-    baseurl="<%=SecurityElement.Escape(baseUrl.AbsoluteUri)%>"
-    userdisplayname="<%=GetDisplayName(strDomainUserName,strLDAPPath,domainName)%>"
-    userexpiration="<%=GetPasswordExpirationDate(strDomainUserName,strLDAPPath)%>"
-    logonHeader="<%=logonHeader%>"
-    privacyurl="<%=AntiXssEncoder.XmlAttributeEncode(strPrivacyUrl)%>"
-    >
-    <RenderFailureMessage>
-        <html xmlns="http://www.w3.org/1999/xhtml">
-            <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-                <title><%=L_RenderFailTitle_Text%></title>
-            </head>
-            <body>
-                <h1><%=L_RenderFailTitle_Text%></h1>
-                <p><%=L_RenderFailP1_Text%></p>
-                <p><%=L_RenderFailP2_Text%></p>
-                <p><%=L_RenderFailP3_Text%></p>
-            </body>
-        </html> 
-    </RenderFailureMessage>
-    <HeaderJS>
-        bFormAuthenticationMode = false;
-    <%  if ( eAuthenticationMode == AuthenticationMode.Forms ) { %>
-        bFormAuthenticationMode = true;
-    <%  } %>
-        iSessionTimeout = parseInt("<%=SessionTimeoutInMinutes%>");
-    </HeaderJS>
-    <BodyAttr 
-        onload="onPageload(event)" 
-        onunload="onPageUnload(event)" 
-        onmousedown="onUserActivity(event)" 
-        onmousewheel="onUserActivity(event)" 
-        onscroll="onUserActivity(event)" 
-        onkeydown="onUserActivity(event)" />
-    <PostHtmlLoadJS>
-        onAuthenticatedPageload();
-    </PostHtmlLoadJS>
-    <NavBar
-    <% if ( eAuthenticationMode == AuthenticationMode.Forms ) {  %>
-        showsignout="true"
-    <% } %>
-        activetab="PORTAL_REMOTE_PROGRAMS"
-    >
-        <Tab id="PORTAL_REMOTE_PROGRAMS" href="Default.aspx"><%=L_RemoteAppProgramsLabel_Text%></Tab>
-<%
-    if (ConfigurationManager.AppSettings["ShowDesktops"].ToString() == "true")
-    {
-%>
-        <Tab id="PORTAL_REMOTE_DESKTOPS" href="Desktops.aspx"><%=L_DesktopTab_Text%></Tab>
-<%
-    }
-%>
-
-    </NavBar>
-    <Style>
-      .tswa_appboard {width:850px;}
-      .tswa_ShowOptimizeExperienceShiftedUp 
-      {
-        position:absolute;
-        left:10px;
-        top:397px;
-        width:850px;
-        height:20px;
-        background-color:white;
-      }
-      
-      #PORTAL_REMOTE_DESKTOPS
-      {
-          display:none;
-      }
-<%
-    if ( bShowPublicCheckBox )
-    {
-%>
-      .tswa_ShowOptimizeExperience
-      {
-        position:absolute;
-        left:10px;
-        top:445px;
-        width:850px;
-        height:20px;
-        background-color:white;
-      }
-<%
-    }
-    else
-    {
-%>
-      .tswa_ShowOptimizeExperience
-      {
-        position:absolute;
-        left:10px;
-        top:462px;
-        width:850px;
-        height:20px;
-        background-color:white;
-      }
-<%
-    }
-%>
-      .tswa_PublicCheckboxMore
-      {
-        position:absolute;
-        left:10px;
-        top:417px;
-        width:850px;
-        height:50px;
-        border-top: 1px solid gray;
-        background-color:white;
-        z-index:4000;
-        padding-top:4px;
-      }
-      
-      .tswa_PublicCheckboxLess
-      {
-        position:absolute;
-        left:10px;
-        top:462px;
-        width:850px;
-        height:20px;
-        background-color:white;
-      }
-
-<% if (bRTL) { %>
-      /* Rules that are specific to RTL language environments */
-
-      .tswa_appboard
-      {
-        padding-right:10px;
-      }
-
-      .tswa_boss, .tswa_folder_boss, .tswa_up_boss
-      {
-        float:right;
-      }
-
-      .tswa_error_icon
-      {
-        margin-left: 0px;
-        padding-left: 0px;
-        margin-right:10px;
-        padding-right:45px;
-      }
-
-      .tswa_error_msg
-      {
-        margin-left:0px;
-        padding-right:0px;
-        margin-right:55px;
-        padding-left:10px;
-      }
-
-<% } %>
-    </Style>
-    <Style condition="if IE 6">
-      .tswa_appdisplay
-      {
-        background-color:transparent;left:5px;top:0px;height:450px;width:850px;
-      }
-
-
-      .tswa_ShowOptimizeExperienceShiftedUp
-      {
-        position:absolute;
-        left:10px;
-        top:415px;
-        width:850px;
-        height:20px;
-        background-color:white;
-      }
-
-<%
-    if ( bShowPublicCheckBox )
-    {
-%>
-       .tswa_ShowOptimizeExperience
-       {
-         position:absolute;
-         left:10px;
-         top:463px;
-         width:850px;
-         height:20px;
-         background-color:white;
-       }
-<%
-    }
-    else
-    {
-%>
-       .tswa_ShowOptimizeExperience
-       {
-         position:absolute;
-         left:10px;
-         top:480px;
-         width:850px;
-         height:20px;
-         background-color:white;
-       }
-<%
-    }
-%>
-       .tswa_PublicCheckboxMore
-       {
-         position:absolute;
-         left:10px;
-         top:435px;
-         width:850px;
-         height:50px;
-         border-top: 1px solid gray;
-         background-color:white;
-         z-index:4000;
-         padding-top:4px;
-       }
-       
-       .tswa_PublicCheckboxLess
-       {
-         position:absolute;
-         left:10px;
-         top:480px;
-         width:850px;
-         height:20px;
-         background-color:white;
-       }
-    </Style>
-    <Style condition="if gte IE 7">
-      .tswa_appdisplay
-      {
-        background-color:transparent;
-        left:5px;
-        top:0px;
-        height:440px;
-        width:850px;
-      }
-
-      .tswa_ShowOptimizeExperienceShiftedUp
-      {
-        position:absolute;
-        left:10px;
-        top:397px;
-        width:850px;
-        height:20px;
-        background-color:white;
-      }
-<%
-    if ( bShowPublicCheckBox )
-    {
-%>
-      .tswa_ShowOptimizeExperience
-      {
-        position:absolute;
-        left:10px;
-        top:445px;
-        width:850px;
-        height:20px;
-        background-color:white;
-      }
-<%
-    }
-    else
-    {
-%>
-      .tswa_ShowOptimizeExperience
-      {
-        position:absolute;
-        left:10px;
-        top:462px;
-        width:850px;
-        height:20px;
-        background-color:white;
-      }
-<%
-    }
-%>
-      .tswa_PublicCheckboxMore
-      {
-        position:absolute;
-        left:10px;
-        top:417px;
-        width:850px;
-        height:50px;
-        border-top: 1px solid gray;
-        background-color:white;
-        z-index:4000;
-        padding-top:4px;
-      }
-      
-      .tswa_PublicCheckboxLess
-      {
-        position:absolute;
-        left:10px;
-        top:462px;
-        width:850px;
-        height:20px;
-        background-color:white;
-      }
-    </Style>
-    <AppFeed
-        showpubliccheckbox="<%=bShowPublicCheckBox.ToString().ToLower()%>"
-        privatemode="<%=bPrivateMode.ToString().ToLower()%>"
-        showoptimizeexperience="<%=bShowOptimizeExperience.ToString().ToLower()%>"
-        optimizeexperiencestate="<%=bOptimizeExperienceState.ToString().ToLower()%>"
-        <%
-        if (!String.IsNullOrEmpty(sRDCInstallUrl)) {
-        %>
-        rdcinstallurl="<%=SecurityElement.Escape(sRDCInstallUrl)%>"
-        <%
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title><%= HttpUtility.HtmlEncode(workspaceName) %></title>
+    <link href="../css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        body { background:#f4f6f8; min-height:100vh; }
+        .rdweb-header { background:#fff; border-bottom:1px solid #dee2e6; }
+        .resource-card .card { border:0; transition:transform .12s ease, box-shadow .12s ease; }
+        .resource-card:hover .card { transform:translateY(-2px); }
+        .resource-icon { width:48px; height:48px; object-fit:contain; flex:0 0 48px; }
+        .resource-icon-placeholder {
+            width:48px; height:48px; flex:0 0 48px; border-radius:.5rem;
+            display:flex; align-items:center; justify-content:center;
+            background:#e9ecef; color:#495057; font-size:.75rem; font-weight:700;
         }
-        %>
-    >
-        <%=strAppFeed%>
-    </AppFeed>
-</RDWAPage>
+    </style>
+    <script src="../renderscripts.js"></script>
+    <script>
+        bFormAuthenticationMode = <%= authenticationMode == AuthenticationMode.Forms ? "true" : "false" %>;
+        iSessionTimeout = <%= sessionTimeoutMinutes %>;
+        strBaseUrl = "<%= HttpUtility.JavaScriptStringEncode(baseUrl == null ? "" : baseUrl.AbsoluteUri) %>";
+
+        window.addEventListener("load", function () {
+            if (typeof onAuthenticatedPageload === "function")
+                onAuthenticatedPageload();
+        });
+
+        window.addEventListener("mousedown", function(e) {
+            if (typeof onUserActivity === "function") onUserActivity(e);
+        });
+        window.addEventListener("keydown", function(e) {
+            if (typeof onUserActivity === "function") onUserActivity(e);
+        });
+        window.addEventListener("scroll", function(e) {
+            if (typeof onUserActivity === "function") onUserActivity(e);
+        });
+    </script>
+</head>
+<body>
+    <header class="rdweb-header">
+        <div class="container py-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div>
+                <div class="h4 mb-0"><%= HttpUtility.HtmlEncode(logonHeader) %></div>
+                <div class="small">Welcome <%= HttpUtility.HtmlEncode(displayName) %></div>
+                <% if (!String.IsNullOrEmpty(passwordExpiration)) { %>
+                <div class="small"><a href="password.aspx" class="text-decoration-none"><%= HttpUtility.HtmlEncode(passwordExpiration) %></a></div>
+                <% } %>
+            </div>
+            <% if (authenticationMode == AuthenticationMode.Forms) { %>
+                <a class="btn btn-outline-secondary" href="logoff.aspx">Sign out</a>
+            <% } %>
+        </div>
+    </header>
+
+    <main class="container py-4">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h1 class="h3 mb-1">RemoteApp and Desktops</h1>
+                <p class="text-muted mb-0">Select a resource to download and launch its RDP connection.</p>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <%= RenderResources() %>
+        </div>
+    </main>
+</body>
+</html>
