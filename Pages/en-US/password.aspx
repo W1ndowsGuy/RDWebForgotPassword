@@ -145,7 +145,7 @@
 </script>
 <!doctype html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Change password - <%=HttpUtility.HtmlEncode(L_CompanyName_Text)%></title><link href="../css/bootstrap.min.css" rel="stylesheet"/>
-<style>body{min-height:100vh;background:url('../images/EnglandBigV2.jpg') center/cover fixed no-repeat}.panel{background:rgba(255,255,255,.88);border-radius:1rem;padding:2rem}.wrng{color:#b02a37}</style></head>
+<style>body{min-height:100vh;background:url('../images/EngOne.jpg') center/cover fixed no-repeat}.panel{background:rgba(255,255,255,.88);border-radius:1rem;padding:2rem}.wrng{color:#b02a37}</style></head>
 <body><div class="container py-5"><div class="panel mx-auto" style="max-width:900px"><h1 class="h2 mb-4">Change password</h1>
 <form id="FrmLogin" name="FrmLogin" action="password.aspx" method="post">
 <div class="mb-3"><label class="form-label"><%=L_DomainUserNameLabel_Text%></label><input id="DomainUserName" name="DomainUserName" type="text" runat="server" autocomplete="off" class="form-control"/></div>
