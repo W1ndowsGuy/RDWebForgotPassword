@@ -188,6 +188,9 @@
             string path = Server.MapPath("../config/carousel.xml");
             if (!System.IO.File.Exists(path)) return;
             XDocument doc = XDocument.Load(path);
+            XElement colour = doc.Root.Element("colour");
+            if (colour != null && !String.IsNullOrWhiteSpace(colour.Value))
+                carouselColour = colour.Value.Trim();
             DateTime now = DateTime.Now;
             for (int i = 1; i <= 3; i++)
             {
@@ -316,7 +319,7 @@
         .resource-card .card { border:0; transition:transform .12s ease, box-shadow .12s ease; }
         .resource-card:hover .card { transform:translateY(-2px); }
         .resource-icon { width:48px; height:48px; object-fit:contain; flex:0 0 48px; }
-        .rdweb-carousel { position:fixed; left:0; right:0; bottom:0; z-index:1030; background:rgba(45,20,80,.78); color:#fff; }
+        .rdweb-carousel { position:fixed; left:0; right:0; bottom:0; z-index:1030; background:<%= HttpUtility.HtmlAttributeEncode(carouselColour) %>; color:#fff; }
         .rdweb-carousel .carousel-item { height:145px; }
         .rdweb-carousel .carousel-caption { position:static; padding:1.4rem 5rem 2rem; color:#fff; }
         main.container { margin-bottom:175px !important; }
