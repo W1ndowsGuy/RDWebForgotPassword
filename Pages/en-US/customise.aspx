@@ -18,7 +18,7 @@
     {
         if (!HttpContext.Current.User.Identity.IsAuthenticated) { Response.Redirect("login.aspx?ReturnUrl=" + HttpUtility.UrlEncode(Request.Path)); return; }
         if (!IsWebAdmin()) { Response.StatusCode = 403; Response.End(); return; }
-        if (IsPostBack && Request.HttpMethod == "POST") Save();
+        if (Request.HttpMethod == "POST") Save();
         LoadConfig();
     }
 
