@@ -250,6 +250,10 @@
         .resource-card .card { border:0; transition:transform .12s ease, box-shadow .12s ease; }
         .resource-card:hover .card { transform:translateY(-2px); }
         .resource-icon { width:48px; height:48px; object-fit:contain; flex:0 0 48px; }
+        .rdweb-carousel { position:fixed; left:0; right:0; bottom:0; z-index:1030; background:rgba(45,20,80,.78); color:#fff; }
+        .rdweb-carousel .carousel-item { height:145px; }
+        .rdweb-carousel .carousel-caption { position:static; padding:1.4rem 5rem 2rem; color:#fff; }
+        main.container { margin-bottom:175px !important; }
         .resource-icon-placeholder {
             width:48px; height:48px; flex:0 0 48px; border-radius:.5rem;
             display:flex; align-items:center; justify-content:center;
@@ -285,11 +289,19 @@
                 <div class="h4 mb-0"><%= HttpUtility.HtmlEncode(logonHeader) %></div>
                 <div class="small">Welcome <%= HttpUtility.HtmlEncode(displayName) %></div>
                 <% if (!String.IsNullOrEmpty(passwordExpiration)) { %>
-                <div class="small"><a href="password.aspx" class="text-decoration-none"><%= HttpUtility.HtmlEncode(passwordExpiration) %></a></div>
+                <div class="small">
+                    <%= HttpUtility.HtmlEncode(passwordExpiration) %>
+                    <% if (passwordExpiration.IndexOf("Click here to reset now", StringComparison.OrdinalIgnoreCase) >= 0) { %>
+                        <a href="password.aspx" class="ms-2 text-danger fw-bold">Click Here To Reset</a>
+                    <% } %>
+                </div>
                 <% } %>
             </div>
             <% if (authenticationMode == AuthenticationMode.Forms) { %>
-                <a class="btn btn-outline-secondary" href="logoff.aspx">Sign out</a>
+                <div class="d-flex gap-2">
+                    <a class="btn btn-outline-secondary" href="rap-help.htm">Help</a>
+                    <a class="btn btn-outline-secondary" href="logoff.aspx">Sign out</a>
+                </div>
             <% } %>
         </div>
     </header>
@@ -306,5 +318,27 @@
             <%= RenderResources() %>
         </div>
     </main>
+
+    <div id="myCarousel" class="carousel slide rdweb-carousel" data-bs-ride="carousel">
+        <div class="carousel-indicators">
+            <button type="button" data-bs-target="#myCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+            <button type="button" data-bs-target="#myCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+            <button type="button" data-bs-target="#myCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
+        </div>
+        <div class="carousel-inner">
+            <div class="carousel-item active">
+                <div class="carousel-caption"><h2 class="h4">Maintenence Outage</h2><p class="mb-0">Notifications for outages will also be here in future</p></div>
+            </div>
+            <div class="carousel-item">
+                <div class="carousel-caption"><h2 class="h4">HELP</h2><p class="mb-0">If you having any issues with login please click 'Help'</p></div>
+            </div>
+            <div class="carousel-item">
+                <div class="carousel-caption"><h2 class="h4">Security</h2><p class="mb-0">Warning: By logging in to this web page, you confirm that this computer complies with your organization's security policy.</p></div>
+            </div>
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#myCarousel" data-bs-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="visually-hidden">Previous</span></button>
+        <button class="carousel-control-next" type="button" data-bs-target="#myCarousel" data-bs-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="visually-hidden">Next</span></button>
+    </div>
+    <script src="../js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
