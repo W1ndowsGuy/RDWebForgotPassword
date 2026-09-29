@@ -66,6 +66,10 @@
             return;
         }
 
+        // The registered RDWAFormsAuthenticationModule processes the credentials
+        // before this page executes. If a POST reaches the page unauthenticated,
+        // authentication failed and we simply render the form again.
+
         WorkspaceInfo info = PageContentsHelper.GetWorkspaceInfo();
         if (info != null)
         {
@@ -138,7 +142,7 @@
                 <h1 class="h2 text-center mb-4">Login</h1>
 
                 <form autocomplete="off" id="FrmLogin" name="FrmLogin"
-                      action="login.aspx<%= SecurityElement.Escape(ReturnUrl) %>" method="post"
+                      action="ModernLogin.aspx<%= SecurityElement.Escape(ReturnUrl) %>" method="post"
                       onsubmit="return validateLogin();">
 
                     <input type="hidden" name="WorkSpaceID" value="<%= SecurityElement.Escape(WorkSpaceID) %>" />
