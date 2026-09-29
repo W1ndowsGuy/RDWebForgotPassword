@@ -26,6 +26,7 @@
     public string passwordExpiration = "";
     public string logonHeader = "";
     public bool isWebAdmin = false;
+    public string carouselColour = "#2d1450";
     public string carouselTitle1 = "Maintenence Outage";
     public string carouselText1 = "Notifications for outages will also be here in future";
     public string carouselTitle2 = "HELP";
