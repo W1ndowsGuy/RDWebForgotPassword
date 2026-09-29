@@ -12,6 +12,7 @@
     public string[] Expires = { "", "", "", "" };
     public string Status = "";
     public string CarouselColour = "#2d1450";
+    public string[] States = { "", "NO EXPIRY", "NO EXPIRY", "NO EXPIRY" };
 
     protected void Page_Load(object sender, EventArgs e)
     {
@@ -56,7 +57,13 @@
                 string cv=colour.Value.Trim();
                 if(cv.StartsWith("#")) CarouselColour=cv;
             }
-            for(int i=1;i<=3;i++){ XElement s=d.Root.Elements("slide").FirstOrDefault(x=>(string)x.Attribute("id")==i.ToString()); if(s==null)continue; Titles[i]=(string)s.Element("title")??Titles[i]; Texts[i]=(string)s.Element("text")??Texts[i]; Expires[i]=(string)s.Attribute("expires")??""; }
+            for(int i=1;i<=3;i++){ XElement s=d.Root.Elements("slide").FirstOrDefault(x=>(string)x.Attribute("id")==i.ToString()); if(s==null)continue; Titles[i]=(string)s.Element("title")??Titles[i]; Texts[i]=(string)s.Element("text")??Texts[i]; Expires[i]=(string)s.Attribute("expires")??"";
+                DateTime exp;
+                if(String.IsNullOrWhiteSpace(Expires[i])) States[i]="NO EXPIRY";
+                else if(DateTime.TryParse(Expires[i], null, DateTimeStyles.RoundtripKind, out exp))
+                    States[i]=exp > DateTime.Now ? "ACTIVE" : "EXPIRED - default currently displayed";
+                else States[i]="INVALID EXPIRY";
+            }
         } catch(Exception ex){ Status="Could not read configuration: "+ex.Message; }
     }
 
@@ -85,7 +92,7 @@
 <div class="card mb-3"><div class="card-body"><h2 class="h5">Carousel colour</h2>
 <div class="d-flex align-items-center gap-3"><input type="color" class="form-control form-control-color" id="carouselColour" name="carouselColour" value="<%=HttpUtility.HtmlAttributeEncode(CarouselColour)%>" title="Choose carousel colour"/><span class="text-muted">Choose the carousel colour for this environment.</span></div>
 </div></div>
-<% for(int i=1;i<=3;i++){ %><div class="card mb-3"><div class="card-body"><h2 class="h5">Slide <%=i%></h2>
+<% for(int i=1;i<=3;i++){ %><div class="card mb-3"><div class="card-body"><div class="d-flex justify-content-between align-items-center"><h2 class="h5">Slide <%=i%></h2><span class="badge <%= States[i].StartsWith("EXPIRED") ? "bg-secondary" : (States[i]=="ACTIVE" ? "bg-success" : "bg-info text-dark") %>"><%=HttpUtility.HtmlEncode(States[i])%></span></div>
 <div class="mb-3"><label class="form-label" for="title<%=i%>">Title</label><input class="form-control" id="title<%=i%>" name="title<%=i%>" value="<%=HttpUtility.HtmlAttributeEncode(Titles[i])%>" maxlength="120"/></div>
 <div class="mb-3"><label class="form-label" for="text<%=i%>">Message</label><textarea class="form-control" id="text<%=i%>" name="text<%=i%>" rows="3" maxlength="1000"><%=HttpUtility.HtmlEncode(Texts[i])%></textarea></div>
 <div><label class="form-label" for="expires<%=i%>">Expiry date/time (optional)</label><input class="form-control" style="max-width:320px" type="datetime-local" id="expires<%=i%>" name="expires<%=i%>" value="<% DateTime ed; if(DateTime.TryParse(Expires[i],null,DateTimeStyles.RoundtripKind,out ed)){ %><%=ed.ToString("yyyy-MM-ddTHH:mm")%><% } %>"/><div class="form-text">Leave blank to keep this message until it is changed.</div></div>
