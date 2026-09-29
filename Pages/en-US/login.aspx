@@ -387,5 +387,5 @@ html,body{min-height:100%} body{min-height:100vh;background:url('../images/Engla
 <div id="trPrvtWrn" style="display:none"><%=L_PrivateWarningLabel_Text%></div><div id="trPrvtWrnNoAx" style="display:none"><%=L_PrivateWarningLabelNoAx_Text%></div>
 <hr/><p class="small text-muted mb-0"><%=L_TSWATimeoutLabel_Text%></p>
 </div></form></div></div></div></div>
-<script>var strBaseUrl="<%=AntiXssEncoder.JavaScriptEncode(baseUrl.AbsoluteUri, false)%>"; var strPrivacyUrl="<%=AntiXssEncoder.JavaScriptEncode(strPrivacyUrl, false)%>"; var strHelpUrl="<%=AntiXssEncoder.JavaScriptEncode(sHelpSourceServer, false)%>";</script>
+<script>var strBaseUrl="<%=HttpUtility.JavaScriptStringEncode(baseUrl.AbsoluteUri)%>"; var strPrivacyUrl="<%=HttpUtility.JavaScriptStringEncode(strPrivacyUrl)%>"; var strHelpUrl="<%=HttpUtility.JavaScriptStringEncode(sHelpSourceServer)%>";</script>
 </body></html>
