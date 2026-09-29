@@ -203,7 +203,7 @@
     <title><%= HttpUtility.HtmlEncode(workspaceName) %></title>
     <link href="../css/bootstrap.min.css" rel="stylesheet" />
     <style>
-        body { background:#f4f6f8; min-height:100vh; }
+        body { background:url('../images/EngOne.jpg') center center / cover fixed no-repeat; min-height:100vh; }
         .rdweb-header { background:#fff; border-bottom:1px solid #dee2e6; }
         .resource-card .card { border:0; transition:transform .12s ease, box-shadow .12s ease; }
         .resource-card:hover .card { transform:translateY(-2px); }
