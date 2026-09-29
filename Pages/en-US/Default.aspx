@@ -243,7 +243,7 @@
     <title><%= HttpUtility.HtmlEncode(workspaceName) %></title>
     <link href="../css/bootstrap.min.css" rel="stylesheet" />
     <style>
-        body { background:url('../images/EnglandBigV2.jpg') center center / cover fixed no-repeat; min-height:100vh; }
+        body { background:url('../images/EngOne.jpg') center center / cover fixed no-repeat; min-height:100vh; }
         .container.py-4 { background:rgba(255,255,255,.58); border-radius:1rem; margin-top:2rem; margin-bottom:2rem; padding:2rem !important; }
         .resource-card .card { background:rgba(255,255,255,.78); }
         .rdweb-header { background:#fff; border-bottom:1px solid #dee2e6; }
