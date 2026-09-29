@@ -108,7 +108,7 @@
 
         try
         {
-            XDocument doc = XDocument.Parse(appFeed);
+            string feedXml = appFeed.TrimStart('\uFEFF', ' ', '\t', '\r', '\n');\n\n            // GenerateFeedAsync returns an XML fragment for the RDWeb page, not necessarily\n            // a standalone XML document. Remove any XML declaration and wrap the fragment.\n            if (feedXml.StartsWith("<?xml", StringComparison.OrdinalIgnoreCase))\n            {\n                int declarationEnd = feedXml.IndexOf("?>", StringComparison.Ordinal);\n                if (declarationEnd >= 0)\n                    feedXml = feedXml.Substring(declarationEnd + 2);\n            }\n\n            XDocument doc = XDocument.Parse("<RDWebFeedRoot>" + feedXml + "</RDWebFeedRoot>");
             XNamespace ns = "http://schemas.microsoft.com/ts/2007/05/tswf";
             var resources = doc.Descendants(ns + "Resource").ToList();
 
