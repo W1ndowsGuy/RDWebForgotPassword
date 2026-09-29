@@ -25,6 +25,13 @@
     public string displayName = "";
     public string passwordExpiration = "";
     public string logonHeader = "";
+    public bool isWebAdmin = false;
+    public string carouselTitle1 = "Maintenence Outage";
+    public string carouselText1 = "Notifications for outages will also be here in future";
+    public string carouselTitle2 = "HELP";
+    public string carouselText2 = "If you having any issues with login please click 'Help'";
+    public string carouselTitle3 = "Security";
+    public string carouselText3 = "Warning: By logging in to this web page, you confirm that this computer complies with your organization's security policy.";
     public static int daysToAdd = 30;
     const int PasswordExpiryThreshold = 10;
 
@@ -78,6 +85,8 @@
         }
 
         LoadUserCustomizations();
+        isWebAdmin = IsMemberOfWebAdmins();
+        LoadCarouselConfiguration();
 
         try
         {
@@ -139,6 +148,63 @@
             }
         } catch { }
         if (String.IsNullOrEmpty(displayName)) displayName = domainUserName;
+    }
+
+    private string GetSamAccountName()
+    {
+        string account = domainUserName ?? "";
+        if (account.Contains("@")) return account.Split('@')[0];
+        if (account.Contains("\\")) return account.Split('\\')[1];
+        return account;
+    }
+
+    private bool IsMemberOfWebAdmins()
+    {
+        try
+        {
+            string fqdn = Domain.GetCurrentDomain().Name;
+            using (DirectoryEntry root = new DirectoryEntry("LDAP://" + fqdn))
+            using (DirectorySearcher ds = new DirectorySearcher(root))
+            {
+                ds.Filter = "(&(objectCategory=person)(objectClass=user)(sAMAccountName=" + GetSamAccountName().Replace("(", "\\28").Replace(")", "\\29") + "))";
+                ds.PropertiesToLoad.Add("distinguishedName");
+                SearchResult user = ds.FindOne();
+                if (user == null || user.Properties["distinguishedName"].Count == 0) return false;
+                string dn = user.Properties["distinguishedName"][0].ToString();
+                using (DirectorySearcher gs = new DirectorySearcher(root))
+                {
+                    gs.Filter = "(&(objectCategory=group)(sAMAccountName=webadmins)(member:1.2.840.113556.1.4.1941:=" + dn.Replace("(", "\\28").Replace(")", "\\29") + "))";
+                    return gs.FindOne() != null;
+                }
+            }
+        }
+        catch { return false; }
+    }
+
+    private void LoadCarouselConfiguration()
+    {
+        try
+        {
+            string path = Server.MapPath("../config/carousel.xml");
+            if (!System.IO.File.Exists(path)) return;
+            XDocument doc = XDocument.Load(path);
+            DateTime now = DateTime.Now;
+            for (int i = 1; i <= 3; i++)
+            {
+                XElement slide = doc.Root.Elements("slide").FirstOrDefault(x => (string)x.Attribute("id") == i.ToString());
+                if (slide == null) continue;
+                DateTime expiry;
+                string expires = (string)slide.Attribute("expires");
+                bool active = String.IsNullOrWhiteSpace(expires) || (DateTime.TryParse(expires, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out expiry) && expiry > now);
+                if (!active) continue;
+                string title = (string)slide.Element("title");
+                string text = (string)slide.Element("text");
+                if (i == 1) { if (!String.IsNullOrEmpty(title)) carouselTitle1 = title; if (!String.IsNullOrEmpty(text)) carouselText1 = text; }
+                if (i == 2) { if (!String.IsNullOrEmpty(title)) carouselTitle2 = title; if (!String.IsNullOrEmpty(text)) carouselText2 = text; }
+                if (i == 3) { if (!String.IsNullOrEmpty(title)) carouselTitle3 = title; if (!String.IsNullOrEmpty(text)) carouselText3 = text; }
+            }
+        }
+        catch { }
     }
 
     protected string RenderResources()
@@ -299,6 +365,7 @@
             </div>
             <% if (authenticationMode == AuthenticationMode.Forms) { %>
                 <div class="d-flex gap-2">
+                    <% if (isWebAdmin) { %><a class="btn btn-outline-primary" href="customise.aspx">Customise</a><% } %>
                     <a class="btn btn-outline-secondary" href="rap-help.htm">Help</a>
                     <a class="btn btn-outline-secondary" href="logoff.aspx">Sign out</a>
                 </div>
@@ -327,13 +394,13 @@
         </div>
         <div class="carousel-inner">
             <div class="carousel-item active">
-                <div class="carousel-caption"><h2 class="h4">Maintenence Outage</h2><p class="mb-0">Notifications for outages will also be here in future</p></div>
+                <div class="carousel-caption"><h2 class="h4"><%= HttpUtility.HtmlEncode(carouselTitle1) %></h2><p class="mb-0"><%= HttpUtility.HtmlEncode(carouselText1) %></p></div>
             </div>
             <div class="carousel-item">
-                <div class="carousel-caption"><h2 class="h4">HELP</h2><p class="mb-0">If you having any issues with login please click 'Help'</p></div>
+                <div class="carousel-caption"><h2 class="h4"><%= HttpUtility.HtmlEncode(carouselTitle2) %></h2><p class="mb-0"><%= HttpUtility.HtmlEncode(carouselText2) %></p></div>
             </div>
             <div class="carousel-item">
-                <div class="carousel-caption"><h2 class="h4">Security</h2><p class="mb-0">Warning: By logging in to this web page, you confirm that this computer complies with your organization's security policy.</p></div>
+                <div class="carousel-caption"><h2 class="h4"><%= HttpUtility.HtmlEncode(carouselTitle3) %></h2><p class="mb-0"><%= HttpUtility.HtmlEncode(carouselText3) %></p></div>
             </div>
         </div>
         <button class="carousel-control-prev" type="button" data-bs-target="#myCarousel" data-bs-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="visually-hidden">Previous</span></button>
