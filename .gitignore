@@ -1,0 +1,54 @@
+﻿# ==========================================================
+# RDWeb Git exclusions
+# ==========================================================
+
+# ASP.NET runtime data
+Pages/App_Data/*
+Feed/App_Data/*
+
+# Databases
+*.mdf
+*.ldf
+
+# Logs
+*.log
+
+# Manual backup files
+*.bak
+*.bak-*
+*.backup
+*.old
+*.old2
+*.notwork
+*.orig
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+
+# Archives
+*.zip
+*.7z
+*.rar
+
+# Certificates / private keys
+*.pfx
+*.p12
+*.pem
+*.key
+
+# Visual Studio / IDE
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Windows generated files
+Thumbs.db
+Desktop.ini
+
+# Build artifacts
+obj/
