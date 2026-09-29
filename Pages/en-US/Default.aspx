@@ -54,7 +54,7 @@
             {
                 string returnUrl = RequestHelper.GetOriginalRequestUri(Request).AbsolutePath;
                 Response.Redirect(new Uri(baseUrl,
-                    "modernlogin.aspx?ReturnUrl=" + HttpUtility.UrlEncode(returnUrl)).AbsoluteUri, true);
+                    "login.aspx?ReturnUrl=" + HttpUtility.UrlEncode(returnUrl)).AbsoluteUri, true);
                 return;
             }
 
