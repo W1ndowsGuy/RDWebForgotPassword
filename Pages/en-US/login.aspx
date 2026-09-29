@@ -1,8 +1,5 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
-<?xml-stylesheet type="text/xsl" href="../Site.xsl"?>
-<?xml-stylesheet type="text/css" href="../RenderFail.css"?>
 
-<% @Page Language="C#" Debug="false" ResponseEncoding="utf-8" ContentType="text/xml" Async="true" %>
+<% @Page Language="C#" Debug="false" ResponseEncoding="utf-8" ContentType="text/html" Async="true" %>
 <% @Import Namespace="System " %>
 <% @Import Namespace="System.Security" %>
 <% @Import Namespace="System.Threading.Tasks" %>
@@ -337,498 +334,136 @@
     
 
 </script>
-<RDWAPage 
-    helpurl="<%=sHelpSourceServer%>" 
-    workspacename="<%=AntiXssEncoder.XmlAttributeEncode(L_CompanyName_Text)%>" 
-    baseurl="<%=SecurityElement.Escape(baseUrl.AbsoluteUri)%>"
-    privacyurl="<%=AntiXssEncoder.XmlAttributeEncode(strPrivacyUrl)%>"
-    myString="<%=myString%>"
-   
 
- 
-
->
-    <RenderFailureMessage>
-        <html xmlns="http://www.w3.org/1999/xhtml">
-            <head>
-            <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-            <title><%=L_RenderFailTitle_Text%></title>
-            </head>
-            <body>
-                <h1><%=L_RenderFailTitle_Text%></h1>
-                <p><%=L_RenderFailP1_Text%></p>
-                <p><%=L_RenderFailP2_Text%></p>
-                <p><%=L_RenderFailP3_Text%></p>
-            </body>
-        </html> 
-    </RenderFailureMessage>
-    <BodyAttr 
-        onload="onLoginPageLoad(event)" 
-        onunload="onPageUnload(event)"    
-    />
-
-
-    
-    <HTMLMainContent>
-
-        <div class="row" style="height:50px;">
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title><%= AntiXssEncoder.HtmlEncode(L_CompanyName_Text, false) %> - Sign in</title>
+    <link href="../css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        html, body { min-height:100%; }
+        body {
+            min-height:100vh;
+            background:
+                linear-gradient(rgba(0,0,0,.18),rgba(0,0,0,.18)),
+                url('../images/EnglandBigV2.jpg') center center/cover fixed no-repeat;
+        }
+        .page-wrap { min-height:100vh; display:flex; align-items:center; }
+        .brand-panel { color:#fff; text-align:center; text-shadow:0 1px 3px rgba(0,0,0,.35); }
+        .brand-panel img { width:min(300px,75%); height:auto; }
+        .login-panel {
+            background:rgba(255,255,255,.88);
+            border-radius:1rem;
+            padding:2rem;
+            box-shadow:0 .5rem 2rem rgba(0,0,0,.18);
+        }
+        .form-control { background:rgba(255,255,255,.8); }
+    </style>
+</head>
+<body>
+<div class="container page-wrap py-5">
+    <div class="row g-5 align-items-center w-100">
+        <div class="col-lg-6 brand-panel">
+            <div class="h2 mb-4"><%= AntiXssEncoder.HtmlEncode(domainNameC, false) %></div>
+            <img src="../images/crownCopyTransparentW.png" alt="Rural Payments Agency" />
+            <div class="h2 mt-3">Rural Payments Agency</div>
         </div>
-    
-                
-        <div class="container">
-            <div class="row " style="overflow:auto;">
 
-                
-           
-                <div class="col d-flex justify-content-center flex-column align-items-center">
-                    <p class="text-center" style="font-size:30px;font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;color: #fff;"><%= domainNameC %></p>
-                    <img style="width:300px;" src="../images/crownCopyTransparentW.png" alt="CCimage" />
-                    <p class="text-center" style="font-size:30px;font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;color: #fff;">Rural Payments Agency</p>
-                </div>
+        <div class="col-lg-6">
+            <div class="login-panel mx-auto" style="max-width:520px">
+                <h1 class="h2 text-center mb-4">Login</h1>
 
+                <% if (bFailedLogon) { %>
+                    <div class="alert alert-danger"><%= L_LogonFailureLabel_Text %></div>
+                <% } %>
+                <% if (bFailedAuthorization || bFailedAuthorizationOverride) { %>
+                    <div class="alert alert-danger"><%= L_AuthorizationFailureLabel_Text %></div>
+                <% } %>
+                <% if (bServerConfigChanged) { %>
+                    <div class="alert alert-warning"><%= L_ServerConfigChangedLabel_Text %></div>
+                <% } %>
+                <% if (bWorkspaceInUse) { %>
+                    <div class="alert alert-warning"><%= L_ExistingWorkspaceLabel_Text %></div>
+                <% } %>
+                <% if (bWorkspaceDisconnected) { %>
+                    <div class="alert alert-warning"><%= L_DisconnectedWorkspaceLabel_Text %></div>
+                <% } %>
+                <% if (bPasswordExpired) { %>
+                    <div class="alert alert-warning">
+                        <%= L_PasswordExpiredChangeBeginning_Text %><a href="password.aspx<%= SecurityElement.Escape(strPasswordExpiredQueryString) %>"><%= L_PasswordExpiredChangeLink_Text %></a><%= L_PasswordExpiredChangeEnding_Text %>
+                    </div>
+                <% } %>
+                <% if (bPasswordExpiredNoChange) { %>
+                    <div class="alert alert-warning"><%= L_PasswordExpiredNoChange_Text %></div>
+                <% } %>
 
+                <form autocomplete="off" id="FrmLogin" name="FrmLogin"
+                      action="login.aspx<%= SecurityElement.Escape(strReturnUrl) %>"
+                      method="post" onsubmit="return validateLogin();">
 
+                    <input type="hidden" name="WorkSpaceID" value="<%= SecurityElement.Escape(strWorkSpaceID) %>" />
+                    <input type="hidden" name="RDPCertificates" value="<%= SecurityElement.Escape(strRDPCertificates) %>" />
+                    <input type="hidden" name="PublicModeTimeout" value="<%= SecurityElement.Escape(strPublicModeTimeout) %>" />
+                    <input type="hidden" name="PrivateModeTimeout" value="<%= SecurityElement.Escape(strPrivateModeTimeout) %>" />
+                    <input type="hidden" name="WorkspaceFriendlyName" value="<%= AntiXssEncoder.UrlEncode(L_CompanyName_Text) %>" />
+                    <input type="hidden" name="EventLogUploadAddress" value="<%= SecurityElement.Escape(strEventLogUploadAddress) %>" />
+                    <input type="hidden" name="RedirectorName" value="<%= SecurityElement.Escape(strRedirectorName) %>" />
+                    <input type="hidden" name="ClaimsHint" value="<%= SecurityElement.Escape(strClaimsHint) %>" />
+                    <input type="hidden" name="ClaimsToken" value="" />
+                    <input type="hidden" name="isUtf8" value="1" />
+                    <input type="hidden" name="flags" value="0" />
+                    <input type="hidden" name="MachineType" value="private" />
 
-              
+                    <div id="clientError" class="alert alert-danger d-none">
+                        Enter a valid domain user name and password.
+                    </div>
 
-                <div class="col d-flex justify-content-center align-items-center" style="background-color:rgba(255,255,255,0.5); border-radius: 1rem;width: 300px;border-collapse:collapse;margin-left: 50px;margin-right: 50px;">
-                    <form autocomplete="off" id="FrmLogin" name="FrmLogin" action="login.aspx<%=SecurityElement.Escape(strReturnUrl)%>" method="post" onsubmit="return onLoginFormSubmit()">
+                    <div class="mb-3">
+                        <label class="form-label" for="DomainUserName"><%= L_DomainUserNameLabel_Text %></label>
+                        <input class="form-control form-control-lg" id="DomainUserName"
+                               name="DomainUserName" type="text" autocomplete="username" />
+                    </div>
 
-                        <input type="hidden" name="WorkSpaceID" value="<%=SecurityElement.Escape(strWorkSpaceID)%>"/>
-                        <input type="hidden" name="RDPCertificates" value="<%=SecurityElement.Escape(strRDPCertificates)%>"/>
-                        <input type="hidden" name="PublicModeTimeout" value="<%=SecurityElement.Escape(strPublicModeTimeout)%>"/>
-                        <input type="hidden" name="PrivateModeTimeout" value="<%=SecurityElement.Escape(strPrivateModeTimeout)%>"/>
-                        <input type="hidden" name="WorkspaceFriendlyName" value="<%=AntiXssEncoder.UrlEncode(L_CompanyName_Text)%>"/>
-                        <input type="hidden" name="EventLogUploadAddress" value="<%=SecurityElement.Escape(strEventLogUploadAddress)%>"/>
-                        <input type="hidden" name="RedirectorName" value="<%=SecurityElement.Escape(strRedirectorName)%>"/>
-                        <input type="hidden" name="ClaimsHint" value="<%=SecurityElement.Escape(strClaimsHint)%>"/>
-                        <input type="hidden" name="ClaimsToken" value=""/>
+                    <div class="mb-3">
+                        <label class="form-label" for="UserPass"><%= L_PasswordLabel_Text %></label>
+                        <input class="form-control form-control-lg" id="UserPass"
+                               name="UserPass" type="password" autocomplete="current-password" />
+                    </div>
 
-                        <input name="isUtf8" type="hidden" value="1"/>
-                        <input type="hidden" name="flags" value="0"/>
+                    <div class="mb-4">
+                        <label class="form-label" for="SecurityCode">Security Code</label>
+                        <input class="form-control form-control-lg" id="SecurityCode"
+                               name="securitycode" type="text" inputmode="numeric"
+                               autocomplete="one-time-code" />
+                    </div>
 
+                    <input type="hidden" id="SymcUserName" value="DomainUserName=" />
 
-                        <div id="tableLoginDisabled" width="300" border="0" align="center" cellpadding="0" cellspacing="0" style="display:none">
+                    <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                        <button type="submit" class="btn btn-secondary btn-lg px-4">Sign in</button>
+                        <a class="btn btn-outline-secondary btn-lg px-4" href="rap-help.htm">Help</a>
+                    </div>
+                </form>
 
-                            <div id="trWrongAxVersion" style="display:none" >
-                                <div>
-                                    <div>
-                                        <div>
-                                            <div height="20">&#160;</div>
-                                        </div>
-                                        <div>
-                                            <div><span class="wrng"><%=L_WrongAxVersionWarningLabel_Text%></span></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div id="trUnsupportedBrowser" style="display:none" >
-                                <div>
-                                    <div>
-                                        <div>
-                                            <div height="20">&#160;</div>
-                                        </div>
-                                        <div>
-                                            <div><span class="wrng"><%=L_UnsupportedBrowserWarningLabel_Text%></span></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div> 
-
-                            <div id="trSupportedBrowserAxLoadError" style="display:none" >
-                                <div>
-                                    <div>
-                                        <div>
-                                            <div height="20">&#160;</div>
-                                        </div>
-                                        <div>
-                                            <div><span class="wrng"><%=L_SupportedBrowserAxLoadErrorLabel_Text%></span></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div> 
-
-                            <div id="trCookiesDisabled" style="display:none" >
-                                <div>
-                                    <div>
-                                        <div>
-                                            <div height="20">&#160;</div>
-                                        </div>
-                                        <div>
-                                            <div><span class="wrng"><%=L_CookiesDisabledWarningLabel_Text%></span></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div> 
-
-                            <div>
-                                <div height="50">&#160;</div>
-                            </div>
-
-                        </div>
-                    
-                        <div  id="tableLoginForm" >
-                            <div class="login-box"    >
-                                <h2 style="margin-top: 20px;">Login</h2>
-                                <div class="user-box" style="position: relative;">
-                                    <input id="DomainUserName" name="DomainUserName" type="text" runat="server" autocomplete="off" 
-                                        style="width: 100%; padding: 10px 0; font-size: 16px; color: #000; margin-bottom: 30px; border: none; border-bottom: 1px solid #000; outline: none; background: transparent;"
-                                        oninput="moveLabel('DomainUserName', 'DomainUserNameLabel')" onfocus="moveLabel(true, 'DomainUserName', 'DomainUserNameLabel')" onblur="moveLabel(false, 'DomainUserName', 'DomainUserNameLabel')">
-                                    <label id="DomainUserNameLabel" for="DomainUserName" style="position: absolute; top: -20px; left: 0; padding: 10px 0; font-size: 12px; color: #000; pointer-events: none; transition: .5s;"> <%=L_DomainUserNameLabel_Text%></label>
-                                </div>
-
-                                <div class="user-box" style="position: relative;">
-                                    <input id="UserPass" name="UserPass" type="password" class="textInputField" runat="server" size="25" autocomplete="off"
-                                        style="width: 100%; padding: 10px 0; font-size: 16px; color: #000; margin-bottom: 30px; border: none; border-bottom: 1px solid #000; outline: none; background: transparent;"
-                                        oninput="moveLabel('UserPass', 'passwordLabel')" onfocus="moveLabel(true, 'UserPass', 'passwordLabel')" onblur="moveLabel(false, 'UserPass', 'passwordLabel')">
-                                    <label id="passwordLabel" for="UserPass" style="position: absolute; top: -20px; left: 0; padding: 10px 0; font-size: 12px; color: #000; pointer-events: none; transition: .5s;"> <%=L_PasswordLabel_Text%></label>
-                                </div>
-
-                                <div class="user-box" style="position: relative;">
-                                    <input id="SecurityCode" name="securitycode" type="text" class="textInputField" runat="server" size="25" autocomplete="off"
-                                        style="width: 100%; padding: 10px 0; font-size: 16px; color: #000; margin-bottom: 30px; border: none; border-bottom: 1px solid #000; outline: none; background: transparent;"
-                                        oninput="moveLabel('SecurityCode', 'securityCodeLabel')" onfocus="moveLabel(true, 'SecurityCode', 'securityCodeLabel')" onblur="moveLabel(false, 'SecurityCode', 'securityCodeLabel')">
-                                    <label id="securityCodeLabel" for="SecurityCode" style="position: absolute; top: -20px; left: 0; padding: 10px 0; font-size: 12px; color: #000; pointer-events: none; transition: .5s;">Security Code</label>
-                                </div>
-
-                                <div>
-                                     <label>
-                                        <input id="SymcUserName" value="DomainUserName=" runat="server" size="25" style="display:none;" />
-                                    </label>
-                                </div>
- 
-                           
-                            
-
-                                <div style="display: flex; justify-content: center; width: 300px;">
-                                 
-                                    <label>
-                                        <input type="submit" class="btn btn-secondary" id="btnSignIn" value="Sign in"/>
-                                    </label>
-                                    <div style="width:30px;"></div>
-                                    <label>
-                                        <input type="button" class="btn btn-outline-secondary" id="btnSignIn" onclick="location.href='javascript:onClickHelp()'" value="Help"/>
-                                    </label>
-   
-                                </div>
-
-
-
-
-                                <%
-                                strErrorMessageRowStyle = "style=\"display:none\"";
-                                    if ( bPasswordExpiredNoChange == true)
-                                    {
-                                        strErrorMessageRowStyle = "style=\"display:\"";
-                                    }
-                                %>
-                                <div id="trPasswordExpiredNoChange" <%=strErrorMessageRowStyle%> >
-                                    <div>
-                                        <div>
-                                            <div>
-                                                <div height="20">&#160;</div>
-                                            </div>
-                                            <div>
-                                                <div><span class="wrng"><%=L_PasswordExpiredNoChange_Text%></span></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <%
-                                    strErrorMessageRowStyle = "style=\"display:none\"";
-                                    if ( bPasswordExpired == true)
-                                    {
-                                        strErrorMessageRowStyle = "style=\"display:\"";
-                                    }
-                                %>
-                                <div id="trPasswordExpired" <%=strErrorMessageRowStyle%> >
-                                    <div>
-                                        <div>
-                                            <div>
-                                                <div height="20">&#160;</div>
-                                            </div>
-                                            <div>
-                                            <div>
-                                                <span class="wrng"><%=L_PasswordExpiredChangeBeginning_Text%>
-                                                    <a id = "passwordchangelink" href="password.aspx<%=strPasswordExpiredQueryString%>">
-                                                        <%=L_PasswordExpiredChangeLink_Text%>
-                                                    </a>
-                                                    <%=L_PasswordExpiredChangeEnding_Text%>
-                                                </span>
-                                            </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <%
-                                    strErrorMessageRowStyle = "style=\"display:none\"";
-                                    if ( bWorkspaceInUse == true )
-                                    {   
-                                        strErrorMessageRowStyle = "style=\"display:\"";
-                                    }
-                                %>
-                                <div id="trErrorWorkSpaceInUse" <%=strErrorMessageRowStyle%> >
-                                    <div>
-                                        <div>
-                                            <div>
-                                                <div height="20">&#160;</div>
-                                            </div>
-                                            <div>
-                                                <div><span class="wrng"><%=L_ExistingWorkspaceLabel_Text%></span></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <%
-                                    strErrorMessageRowStyle = "style=\"display:none\"";
-                                    if ( bWorkspaceDisconnected == true )
-                                    {
-                                        strErrorMessageRowStyle = "style=\"display:\"";
-                                    }
-                                %>
-                                <div id="trErrorWorkSpaceDisconnected" <%=strErrorMessageRowStyle%> >
-                                    <div>
-                                        <div>
-                                            <div>
-                                                <div height="20">&#160;</div>
-                                            </div>     
-                                            <div>
-                                                <div><span class="wrng"><%=L_DisconnectedWorkspaceLabel_Text%></span></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <%
-                                    strErrorMessageRowStyle = "style=\"display:none\"";
-                                    if ( bFailedLogon == true )
-                                    {   
-                                        strErrorMessageRowStyle = "style=\"display:\"";
-                                    }   
-                                %>
-                                <div id="trErrorIncorrectCredentials" <%=strErrorMessageRowStyle%> >
-                                    <div>
-                                        <div>
-                                            <div>
-                                                <div height="20">&#160;</div>
-                                            </div>
-                                            <div>                
-                                                <div><span class="wrng"><%=L_LogonFailureLabel_Text%></span></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div id="trErrorDomainNameMissing" style="display:none" >
-                                    <div>
-                                        <div>
-                                            <div>
-                                                <div height="20">&#160;</div>
-                                            </div>
-                                            <div>
-                                                <div><span class="wrng"><%=L_DomainNameMissingLabel_Text%></span></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div> 
-
-                                <%
-                                    strErrorMessageRowStyle = "style=\"display:none\"";
-                                    if ( bFailedAuthorization || bFailedAuthorizationOverride )
-                                    {
-                                        strErrorMessageRowStyle = "style=\"display:\"";
-                                    }
-                                %>
-                                <div id="trErrorUnauthorizedAccess" <%=strErrorMessageRowStyle%> >
-                                    <div>
-                                        <div>
-                                            <div>
-                                                <div height="20">&#160;</div>
-                                            </div>   
-                                            <div>
-                                                <div><span class="wrng"><%=L_AuthorizationFailureLabel_Text%></span></div>
-                                            </div>   
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <%
-                                    strErrorMessageRowStyle = "style=\"display:none\"";
-                                    if ( bServerConfigChanged )
-                                    {
-                                        strErrorMessageRowStyle = "style=\"display:\"";
-                                    }
-                                %>
-                                <div id="trErrorServerConfigChanged" <%=strErrorMessageRowStyle%> >
-                                    <div>
-                                        <div>
-                                            <div>
-                                                <div height="20">&#160;</div>
-                                            </div>
-                                            <div>
-                                                <div><span class="wrng"><%=L_ServerConfigChangedLabel_Text%></span></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div id="trErrorGenericClaimsAuthFailure" style="display:none" >
-                                    <div>
-                                        <div>
-                                            <div>
-                                                <div height="20">&#160;</div>
-                                            </div>
-                                            <div>
-                                                <div><span class="wrng"><%=L_GenericClaimsAuthErrorLabel_Text%></span></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div> 
-
-                                <div>
-                                    <div height="20">&#160;</div>
-                                </div>
-                                <div>
-                                    <div height="1" bgcolor="#CCCCCC"></div>
-                                </div>
-                                <div>
-                                    <div height="20">&#160;</div>
-                                </div>
-
-                                <div>
-                                    <div>
-                                        <div border="0" cellspacing="0" cellpadding="0">
-                                            <div>
-                                                <div><%=L_SecurityLabel_Text%>&#160;<span id="spanToggleSecExplanation" style="display:none">(<a href="javascript:onclickExplanation('lnkShwSec')" id="lnkShwSec"><%=L_ShowExplanationLabel_Text%></a><a href="javascript:onclickExplanation('lnkHdSec')" id="lnkHdSec" style="display:none"><%=L_HideExplanationLabel_Text%></a>)</span></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div height="5"></div>
-                                </div>
-
-                                <div>
-                                    <div>    
-                                        <div border="0" cellspacing="0" cellpadding="0" style="display:none" id="tablePublicOption" >
-                                            <div>
-                                                <div width="30">
-                                                    <label><input id="rdoPblc" type="radio" name="MachineType" value="public" class="rdo" onclick="onClickSecurity()" /></label>
-                                            </div>
-                                            <div><%=L_PublicLabel_Text%></div>
-                                            </div>
-                                            <div id="trPubExp" style="display:none" >
-                                                <div width="30"></div>
-                                                    <div><span class="expl"><%=L_PublicExplanationLabel_Text%></span></div>
-                                            </div>
-                                            <div>
-                                                <div height="7"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div>
-                                        <div border="0" cellspacing="0" cellpadding="0" style="display:none" id="tablePrivateOption" >
-                                            <div>
-                                                <div width="30">
-                                                    <label><input id="rdoPrvt" type="radio" name="MachineType" value="private" class="rdo" onclick="onClickSecurity()" checked="checked" /></label>
-                                                </div>
-                                                <div><%=L_PrivateLabel_Text%></div>
-                                            </div>
-                                            <div id="trPrvtExp" style="display:none" >
-                                                <div width="30"></div>
-                                                    <div><span class="expl"><%=L_PrivateExplanationLabel_Text%></span></div>
-                                            </div>
-                                            <div>
-                                                <div height="7"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div>
-                                        <div border="0" cellspacing="0" cellpadding="0">
-                                            <div id="trPrvtWrn" style="display:none" >
-                                                <div width="30"></div>
-                                                <div><span class="wrng"><%=L_PrivateWarningLabel_Text%></span></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div>
-                                        <div border="0" cellspacing="0" cellpadding="0">
-                                            <div id="trPrvtWrnNoAx" style="display:none">
-                                                <div><span class="wrng"><%=L_PrivateWarningLabelNoAx_Text%></span></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-            
-                
-
-                                <div>
-                                    <div height="20">&#160;</div>
-                                </div>
-                                <div>
-                                    <div height="1" bgcolor="#CCCCCC"></div>
-                                </div>
-
-                                <div>
-                                    <div height="20">&#160;</div>
-                                </div>
-                                <div>
-                                    <div><%=L_TSWATimeoutLabel_Text%></div>
-                                </div>
-
-                                <div>
-                                    <div height="30">&#160;</div>
-                                </div>
-
-                            </div>
-                        </div>
-
- 
-
-                  
-
-                    </form>
-                </div>
-                             
+                <hr class="my-4" />
+                <p class="small text-muted text-center mb-0"><%= L_TSWATimeoutLabel_Text %></p>
             </div>
         </div>
+    </div>
+</div>
 
-     
-        <script>
-            function moveLabel(isFocused, inputId, labelId) {
-                var label = document.getElementById(labelId);
-                var input = document.getElementById(inputId);
-                if (isFocused || input.value !== '') {
-                    label.style.top = '-20px';
-                    label.style.fontSize = '12px';
-                    label.style.color = '#fff';
-                } else {
-                    label.style.top = '-20px';
-                    label.style.fontSize = '12px';
-                    label.style.color = '#000';
-                }
-            }
-
-
-        </script>
-
-
-        
-
-  
-    </HTMLMainContent>
-</RDWAPage>
+<script>
+function validateLogin() {
+    var user = document.getElementById("DomainUserName").value;
+    var pass = document.getElementById("UserPass").value;
+    var hasDomain = user.indexOf("\\") > 0 || user.indexOf("@") > 0;
+    var ok = user.length > 0 && pass.length > 0 && hasDomain;
+    document.getElementById("clientError").classList.toggle("d-none", ok);
+    return ok;
+}
+document.getElementById("DomainUserName").focus();
+</script>
+</body>
+</html>
