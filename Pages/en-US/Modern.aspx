@@ -108,8 +108,9 @@
 
         try
         {
-            string feedXml = appFeed.TrimStart('\uFEFF', ' ', '\t', '\r', '
-');
+            string feedXml = appFeed.Trim();
+            if (feedXml.Length > 0 && feedXml[0] == '\uFEFF')
+                feedXml = feedXml.Substring(1).TrimStart();
 
             // GenerateFeedAsync returns an XML fragment for the RDWeb page, not necessarily
             // a standalone XML document. Remove any XML declaration and wrap the fragment.
