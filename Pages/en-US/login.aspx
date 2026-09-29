@@ -342,6 +342,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title><%= AntiXssEncoder.HtmlEncode(L_CompanyName_Text, false) %> - Sign in</title>
     <link href="../css/bootstrap.min.css" rel="stylesheet" />
+    <script src="../webscripts-domain.js"></script>
     <style>
         html, body { min-height:100%; }
         body {
@@ -401,7 +402,7 @@
 
                 <form autocomplete="off" id="FrmLogin" name="FrmLogin"
                       action="login.aspx<%= SecurityElement.Escape(strReturnUrl) %>"
-                      method="post" onsubmit="return validateLogin();">
+                      method="post" onsubmit="return onLoginFormSubmit();">
 
                     <input type="hidden" name="WorkSpaceID" value="<%= SecurityElement.Escape(strWorkSpaceID) %>" />
                     <input type="hidden" name="RDPCertificates" value="<%= SecurityElement.Escape(strRDPCertificates) %>" />
@@ -414,7 +415,7 @@
                     <input type="hidden" name="ClaimsToken" value="" />
                     <input type="hidden" name="isUtf8" value="1" />
                     <input type="hidden" name="flags" value="0" />
-                    <input type="hidden" name="MachineType" value="private" />
+                    <input type="hidden" name="MachineType" id="MachineType" value="private" />
 
                     <div id="clientError" class="alert alert-danger d-none">
                         Enter a valid domain user name and password.
@@ -455,15 +456,16 @@
 </div>
 
 <script>
-function validateLogin() {
-    var user = document.getElementById("DomainUserName").value;
-    var pass = document.getElementById("UserPass").value;
-    var hasDomain = user.indexOf("\\") > 0 || user.indexOf("@") > 0;
-    var ok = user.length > 0 && pass.length > 0 && hasDomain;
-    document.getElementById("clientError").classList.toggle("d-none", ok);
-    return ok;
-}
-document.getElementById("DomainUserName").focus();
+window.addEventListener("load", function () {
+    if (typeof onLoginPageLoad === "function") {
+        onLoginPageLoad(window.event);
+    }
+    var user = document.getElementById("DomainUserName");
+    if (user) user.focus();
+});
+window.addEventListener("unload", function (e) {
+    if (typeof onPageUnload === "function") onPageUnload(e);
+});
 </script>
 </body>
 </html>
