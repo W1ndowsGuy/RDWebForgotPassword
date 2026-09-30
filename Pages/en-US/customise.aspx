@@ -12,6 +12,8 @@
     public string[] Expires = { "", "", "", "" };
     public string Status = "";
     public string CarouselColour = "#2d1450";
+    public string EnvironmentName = "";
+    public int PasswordExpiryDays = 30;
     public string[] States = { "", "NO EXPIRY", "NO EXPIRY", "NO EXPIRY" };
 
     protected void Page_Load(object sender, EventArgs e)
@@ -52,6 +54,8 @@
         try {
             if(!System.IO.File.Exists(ConfigPath())) return;
             XDocument d=XDocument.Load(ConfigPath());
+            XElement env=d.Root.Element("environmentName"); if(env!=null) EnvironmentName=env.Value;
+            XElement pwd=d.Root.Element("passwordExpiryDays"); int pd; if(pwd!=null&&Int32.TryParse(pwd.Value,out pd)&&pd>0) PasswordExpiryDays=pd;
             XElement colour=d.Root.Element("colour");
             if(colour!=null&&!String.IsNullOrWhiteSpace(colour.Value)) {
                 string cv=colour.Value.Trim();
@@ -70,7 +74,7 @@
     void ResetDefaults()
     {
         try {
-            XDocument d=new XDocument(new XElement("carousel", new XElement("colour", "#2d1450")));
+            XDocument d=new XDocument(new XElement("carousel", new XElement("environmentName", ""), new XElement("passwordExpiryDays", "30"), new XElement("colour", "#2d1450")));
             string[] dt={ "", "Maintenence Outage", "HELP", "Security" };
             string[] dm={ "", "Notifications for outages will also be here in future", "If you having any issues with login please click 'Help'", "Warning: By logging in to this web page, you confirm that this computer complies with your organization's security policy." };
             for(int i=1;i<=3;i++) d.Root.Add(new XElement("slide",new XAttribute("id",i),new XAttribute("expires",""),new XElement("title",dt[i]),new XElement("text",dm[i])));
@@ -82,8 +86,10 @@
     {
         try {
             string colour=Request.Form["carouselColour"]??"#2d1450";
+            string environment=(Request.Form["environmentName"]??"").Trim();
+            int passwordDays; if(!Int32.TryParse(Request.Form["passwordExpiryDays"]??"30",out passwordDays)||passwordDays<1||passwordDays>3650) throw new Exception("Password expiry days must be between 1 and 3650.");
             if(!System.Text.RegularExpressions.Regex.IsMatch(colour, "^#[0-9A-Fa-f]{6}$")) throw new Exception("Carousel colour must be a valid colour.");
-            XDocument d=new XDocument(new XElement("carousel", new XElement("colour", colour)));
+            XDocument d=new XDocument(new XElement("carousel", new XElement("environmentName", environment), new XElement("passwordExpiryDays", passwordDays), new XElement("colour", colour)));
             for(int i=1;i<=3;i++){
                 string title=Request.Form["title"+i]??""; string text=Request.Form["text"+i]??""; string raw=Request.Form["expires"+i]??""; string expiry="";
                 DateTime dt; if(!String.IsNullOrWhiteSpace(raw)){ if(!DateTime.TryParse(raw, out dt)) throw new Exception("Slide "+i+" has an invalid expiry date/time."); expiry=dt.ToString("o"); }
@@ -100,6 +106,10 @@
 <body><main class="container py-4"><div class="panel p-4 shadow"><div class="d-flex justify-content-between align-items-center mb-4"><div><h1 class="h3 mb-1">Carousel Customisation</h1><p class="text-muted mb-0">Custom messages automatically revert to the built-in defaults after their expiry time.</p></div><a class="btn btn-outline-secondary" href="default.aspx">Back to RDWeb</a></div>
 <% if(!String.IsNullOrEmpty(Status)){ %><div class="alert alert-info"><%=HttpUtility.HtmlEncode(Status)%></div><% } %>
 <form method="post" action="customise.aspx">
+<div class="card mb-3"><div class="card-body"><h2 class="h5">Environment settings</h2>
+<div class="mb-3"><label class="form-label" for="environmentName">Display name</label><input class="form-control" style="max-width:420px" id="environmentName" name="environmentName" value="<%=HttpUtility.HtmlAttributeEncode(EnvironmentName)%>" maxlength="100"/><div class="form-text">Optional. Leave blank to use the automatically detected domain name.</div></div>
+<div><label class="form-label" for="passwordExpiryDays">Password expiry days</label><input class="form-control" style="max-width:160px" type="number" min="1" max="3650" id="passwordExpiryDays" name="passwordExpiryDays" value="<%=PasswordExpiryDays%>"/><div class="form-text">Used to calculate the password expiry date shown to users.</div></div>
+</div></div>
 <div class="card mb-3"><div class="card-body"><h2 class="h5">Carousel colour</h2>
 <div class="d-flex align-items-center gap-3"><input type="color" class="form-control form-control-color" id="carouselColour" name="carouselColour" value="<%=HttpUtility.HtmlAttributeEncode(CarouselColour)%>" title="Choose carousel colour"/><span class="text-muted">Choose the carousel colour for this environment.</span></div>
 </div></div>
