@@ -3,6 +3,7 @@
 <%@ Import Namespace="System.Globalization" %>
 <%@ Import Namespace="System.Linq" %>
 <%@ Import Namespace="System.Xml.Linq" %>
+<%@ Import Namespace="System.IO" %>
 <%@ Import Namespace="System.DirectoryServices" %>
 <%@ Import Namespace="System.DirectoryServices.ActiveDirectory" %>
 <%@ Import Namespace="Microsoft.TerminalServices.Publishing.Portal.FormAuthentication" %>
@@ -52,6 +53,23 @@
     }
 
     string ConfigPath(){ return Server.MapPath("../config/carousel.xml"); }
+    string HistoryPath(){ return Server.MapPath("../config/customise-history.xml"); }
+
+    void AddHistory(string action, string details)
+    {
+        try {
+            string path=HistoryPath(); Directory.CreateDirectory(Path.GetDirectoryName(path));
+            XDocument h=File.Exists(path)?XDocument.Load(path):new XDocument(new XElement("history"));
+            h.Root.AddFirst(new XElement("entry",new XAttribute("time",DateTime.Now.ToString("o")),new XAttribute("user",UserName()),new XAttribute("action",action),new XElement("details",details??"")));
+            h.Save(path);
+        } catch { }
+    }
+
+    string ConfigSummary()
+    {
+        return "Environment: "+(String.IsNullOrWhiteSpace(EnvironmentName)?"Automatic":EnvironmentName)+"; Password expiry: "+PasswordExpiryDays+" days; Colour: "+CarouselColour+
+            "; Slide 1: "+Titles[1]+"; Slide 2: "+Titles[2]+"; Slide 3: "+Titles[3];
+    }
 
     void LoadConfig()
     {
@@ -92,6 +110,7 @@
             XDocument d=new XDocument(new XElement("carousel",new XElement("environmentName",EnvironmentName),new XElement("passwordExpiryDays",PasswordExpiryDays),new XElement("colour",CarouselColour)));
             for(int i=1;i<=3;i++) d.Root.Add(new XElement("slide",new XAttribute("id",i),new XAttribute("expires",Expires[i]??""),new XElement("title",Titles[i]),new XElement("text",Texts[i])));
             string path=ConfigPath(); System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)); d.Save(path);
+            AddHistory("Reset "+item, ConfigSummary());
             Status="Setting reset to default.";
         } catch(Exception ex){ Status="Reset failed: "+ex.Message; }
     }
@@ -110,14 +129,18 @@
                 d.Root.Add(new XElement("slide",new XAttribute("id",i),new XAttribute("expires",expiry),new XElement("title",title),new XElement("text",text)));
             }
             string path=ConfigPath(); System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path));
-            d.Save(path); Status="Carousel settings saved.";
+            d.Save(path);
+            EnvironmentName=environment; PasswordExpiryDays=passwordDays; CarouselColour=colour;
+            for(int i=1;i<=3;i++){ XElement s=d.Root.Elements("slide").First(x=>(string)x.Attribute("id")==i.ToString()); Titles[i]=(string)s.Element("title")??""; Texts[i]=(string)s.Element("text")??""; Expires[i]=(string)s.Attribute("expires")??""; }
+            AddHistory("Saved settings", ConfigSummary());
+            Status="Carousel settings saved.";
         } catch(Exception ex){ Status="Save failed: "+ex.Message; }
     }
 </script>
 <!doctype html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>RDWeb Carousel Customisation</title><link href="../css/bootstrap-5.3.8.min.css" rel="stylesheet"/>
 <style>body{background:url('../images/EngOne.jpg') center center/cover fixed no-repeat;min-height:100vh}.panel{background:rgba(255,255,255,.92);border-radius:1rem}.form-control{background:rgba(255,255,255,.95)}</style></head>
-<body><main class="container py-4"><div class="panel p-4 shadow"><div class="d-flex justify-content-between align-items-center mb-4"><div><h1 class="h3 mb-1">Carousel Customisation</h1><p class="text-muted mb-0">Custom messages automatically revert to the built-in defaults after their expiry time.</p></div><a class="btn btn-outline-secondary" href="default.aspx">Back to RDWeb</a></div>
+<body><main class="container py-4"><div class="panel p-4 shadow"><div class="d-flex justify-content-between align-items-center mb-4"><div><h1 class="h3 mb-1">Carousel Customisation</h1><p class="text-muted mb-0">Custom messages automatically revert to the built-in defaults after their expiry time.</p></div><div class="d-flex gap-2"><a class="btn btn-outline-primary" href="customise-history.aspx">History</a><a class="btn btn-outline-secondary" href="default.aspx">Back to RDWeb</a></div></div>
 <% if(!String.IsNullOrEmpty(Status)){ %><div class="alert alert-info"><%=HttpUtility.HtmlEncode(Status)%></div><% } %>
 <form method="post" action="customise.aspx">
 <div class="card mb-3"><div class="card-body"><h2 class="h5">Environment settings</h2>
