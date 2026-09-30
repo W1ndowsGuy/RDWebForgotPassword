@@ -52,3 +52,7 @@ Desktop.ini
 
 # Build artifacts
 obj/
+
+# RDWeb runtime customisation data
+Pages/config/carousel.xml
+Pages/config/customise-history.xml
