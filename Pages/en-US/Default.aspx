@@ -331,13 +331,17 @@
     <link href="../css/bootstrap.min.css" rel="stylesheet" />
     <style>
         body { background:url('../images/EngOne.jpg') center center / cover fixed no-repeat; min-height:100vh; }
-        .container.py-4 { background:rgba(255,255,255,.58); border-radius:1rem; margin-top:2rem; margin-bottom:2rem; padding:2rem !important; }
-        .resource-card .card { background:rgba(255,255,255,.78); }
-        .rdweb-header { background:#fff; border-bottom:1px solid #dee2e6; }
+        .container.py-4 { background:rgba(255,255,255,.58); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,.55); border-radius:1rem; margin-top:2rem; margin-bottom:2rem; padding:2rem !important; box-shadow:0 .5rem 1.5rem rgba(0,0,0,.12); }
+        .resource-card .card { background:rgba(255,255,255,.70); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); }
+        .rdweb-header { margin:14px 18px 0; border:1px solid rgba(255,255,255,.65); border-radius:1rem; background:rgba(255,255,255,.76); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); box-shadow:0 .35rem 1rem rgba(0,0,0,.12); }
+        .rdweb-header .container { max-width:none; padding-left:1.5rem; padding-right:1.5rem; background:transparent; margin:0; border-radius:0; box-shadow:none; }
+        .rdweb-brand-logo { width:56px; height:56px; object-fit:contain; }
+        .rdweb-brand-name { line-height:1.05; font-weight:600; }
+        .rdweb-header .btn { background:rgba(255,255,255,.45); }
         .resource-card .card { border:0; transition:transform .12s ease, box-shadow .12s ease; }
         .resource-card:hover .card { transform:translateY(-2px); }
         .resource-icon { width:48px; height:48px; object-fit:contain; flex:0 0 48px; }
-        .rdweb-carousel { position:fixed; left:0; right:0; bottom:0; z-index:1030; background:<%= HttpUtility.HtmlAttributeEncode(carouselColour) %>; color:#fff; }
+        .rdweb-carousel { position:fixed; left:14px; right:14px; bottom:12px; z-index:1030; background:color-mix(in srgb, <%= HttpUtility.HtmlAttributeEncode(carouselColour) %> 82%, transparent); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.18); border-radius:1rem; color:#fff; overflow:hidden; box-shadow:0 -.25rem 1rem rgba(0,0,0,.12); }
         .rdweb-carousel .carousel-item { height:145px; }
         .rdweb-carousel .carousel-caption { position:static; padding:1.4rem 5rem 2rem; color:#fff; }
         main.container { margin-bottom:175px !important; }
@@ -401,7 +405,11 @@ function launchRdpResource(rdpContents, url) {
 <body onload="initialiseRdpShell();">
     <header class="rdweb-header">
         <div class="container py-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
-            <div>
+            <div class="d-flex align-items-center gap-3">
+                <img class="rdweb-brand-logo" src="../images/crownCopyTransparentW.png" alt="Rural Payments Agency" />
+                <div class="rdweb-brand-name">Rural Payments<br/>Agency</div>
+                <div class="vr mx-2"></div>
+                <div>
                 <div class="h4 mb-0"><%= HttpUtility.HtmlEncode(logonHeader) %></div>
                 <div class="small">Welcome <%= HttpUtility.HtmlEncode(displayName) %></div>
                 <% if (!String.IsNullOrEmpty(passwordExpiration)) { %>
@@ -409,6 +417,7 @@ function launchRdpResource(rdpContents, url) {
                     <a href="password.aspx" class="<%= passwordDaysRemaining >= 0 && passwordDaysRemaining < 5 ? "text-danger fw-bold" : "text-primary" %>"><%= HttpUtility.HtmlEncode(passwordExpiration.Replace(" Click here to reset now.", "")) %></a>
                 </div>
                 <% } %>
+                </div>
             </div>
             <% if (authenticationMode == AuthenticationMode.Forms) { %>
                 <div class="d-flex gap-2">
