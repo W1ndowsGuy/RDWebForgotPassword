@@ -322,6 +322,8 @@
             string path = Server.MapPath("../config/carousel.xml");
             if (!System.IO.File.Exists(path)) return;
             XDocument doc = XDocument.Load(path);
+            XElement env = doc.Root.Element("environmentName");
+            if (env != null && !String.IsNullOrWhiteSpace(env.Value)) domainNameC = env.Value.Trim();
             XElement colour = doc.Root.Element("colour");
             if (colour != null && !String.IsNullOrWhiteSpace(colour.Value)) carouselColour = colour.Value.Trim();
             DateTime now = DateTime.Now;
