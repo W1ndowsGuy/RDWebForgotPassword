@@ -53,6 +53,15 @@
     }
 
     string ConfigPath(){ return Server.MapPath("../config/carousel.xml"); }
+    string TemplatePath(){ return Server.MapPath("../config/carousel.template.xml"); }
+    void EnsureConfig()
+    {
+        string path=ConfigPath();
+        if(!System.IO.File.Exists(path)) {
+            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path));
+            if(System.IO.File.Exists(TemplatePath())) System.IO.File.Copy(TemplatePath(),path,false);
+        }
+    }
     string HistoryPath(){ return Server.MapPath("../config/customise-history.xml"); }
 
     void AddHistory(string action, string details)
@@ -74,6 +83,7 @@
     void LoadConfig()
     {
         try {
+            EnsureConfig();
             if(!System.IO.File.Exists(ConfigPath())) return;
             XDocument d=XDocument.Load(ConfigPath());
             XElement env=d.Root.Element("environmentName"); if(env!=null) EnvironmentName=env.Value;
