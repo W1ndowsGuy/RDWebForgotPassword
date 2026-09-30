@@ -360,10 +360,7 @@
                 <div class="small">Welcome <%= HttpUtility.HtmlEncode(displayName) %></div>
                 <% if (!String.IsNullOrEmpty(passwordExpiration)) { %>
                 <div class="small">
-                    <%= HttpUtility.HtmlEncode(passwordExpiration) %>
-                    <% if (passwordExpiration.IndexOf("Click here to reset now", StringComparison.OrdinalIgnoreCase) >= 0) { %>
-                        <a href="password.aspx" class="ms-2 text-danger fw-bold">Click Here To Reset</a>
-                    <% } %>
+                    <a href="password.aspx" class="<%= passwordExpiration.IndexOf("expires in", StringComparison.OrdinalIgnoreCase) >= 0 && passwordExpiration.IndexOf("does not expire", StringComparison.OrdinalIgnoreCase) < 0 ? "text-danger fw-bold" : "" %>"><%= HttpUtility.HtmlEncode(passwordExpiration.Replace(" Click here to reset now.", "")) %></a>
                 </div>
                 <% } %>
             </div>
