@@ -382,16 +382,16 @@
 <script src="../webscripts-domain.js"></script>
 <style>
 html,body{min-height:100%} body{min-height:100vh;background:url('../images/EngOne.jpg') center/cover fixed no-repeat}
-.page-wrap{min-height:100vh;display:flex;align-items:center}.brand{color:#fff;text-align:center}.brand img{width:300px;max-width:75%}
-.login-panel{background:rgba(255,255,255,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.60);border-radius:1rem;padding:2rem;max-width:520px;margin:auto;box-shadow:0 .5rem 1.5rem rgba(0,0,0,.15)}.wrng{color:#b02a37}
-.brand{background:rgba(255,255,255,.16);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.22);border-radius:1rem;padding:2rem;text-shadow:0 1px 3px rgba(0,0,0,.35)}
+.page-wrap{min-height:100vh;display:flex;align-items:center}.login-shell{background:rgba(255,255,255,.30);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.58);border-radius:1.25rem;box-shadow:0 .75rem 2rem rgba(0,0,0,.18);overflow:hidden}.brand{color:#fff;text-align:center;padding:2.5rem;text-shadow:0 1px 3px rgba(0,0,0,.35);display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:500px}.brand img{width:300px;max-width:75%}
+.login-side{border-left:1px solid rgba(255,255,255,.45);display:flex;align-items:center;padding:2rem}.login-panel{background:transparent;border:0;border-radius:0;padding:1rem 2rem;max-width:520px;width:100%;margin:auto;box-shadow:none}.wrng{color:#b02a37}
+@media(max-width:991.98px){.brand{min-height:auto;padding:2rem}.login-side{border-left:0;border-top:1px solid rgba(255,255,255,.45);padding:1rem}.login-shell{margin-top:1rem;margin-bottom:1rem}}
 .rdweb-carousel{position:fixed;left:14px;right:14px;bottom:12px;z-index:1030;background:color-mix(in srgb,<%=HttpUtility.HtmlAttributeEncode(carouselColour)%> 82%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.18);border-radius:1rem;color:#fff;overflow:hidden;box-shadow:0 -.25rem 1rem rgba(0,0,0,.12)}.rdweb-carousel .carousel-item{height:145px}.rdweb-carousel .carousel-caption{position:static;padding:1.4rem 5rem 2rem;color:#fff}.page-wrap{padding-bottom:165px!important}
 </style>
 </head>
 <body onload="onLoginPageLoad(event)" onunload="onPageUnload(event)">
-<div class="container page-wrap py-5"><div class="row g-5 align-items-center w-100">
+<div class="container page-wrap py-5"><div class="row g-0 align-items-stretch w-100 login-shell">
 <div class="col-lg-6 brand"><div class="h2 mb-4"><%=domainNameC%></div><img src="../images/crownCopyTransparentW.png" alt="Rural Payments Agency"/><div class="h2 mt-3">Rural Payments Agency</div></div>
-<div class="col-lg-6"><div class="login-panel">
+<div class="col-lg-6 login-side"><div class="login-panel">
 <form autocomplete="off" id="FrmLogin" name="FrmLogin" action="login.aspx<%=SecurityElement.Escape(strReturnUrl)%>" method="post" onsubmit="return onLoginFormSubmit()">
 <input type="hidden" name="WorkSpaceID" value="<%=SecurityElement.Escape(strWorkSpaceID)%>"/>
 <input type="hidden" name="RDPCertificates" value="<%=SecurityElement.Escape(strRDPCertificates)%>"/>
