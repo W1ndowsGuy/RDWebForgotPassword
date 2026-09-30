@@ -282,7 +282,18 @@
                 html.Append("<div class=\"col-12 col-sm-6 col-lg-4 col-xl-3\">");
                 html.Append("<a class=\"resource-card text-decoration-none\" href=\"");
                 html.Append(HttpUtility.HtmlAttributeEncode(launchUrl));
-                html.Append("\">");
+                if (!String.IsNullOrEmpty(fallbackContent) && !String.IsNullOrEmpty(launchUrl))
+                {
+                    html.Append("\" onclick=\"return launchRdpResource('");
+                    html.Append(HttpUtility.HtmlAttributeEncode(HttpUtility.JavaScriptStringEncode(fallbackContent)));
+                    html.Append("', '");
+                    html.Append(HttpUtility.HtmlAttributeEncode(HttpUtility.JavaScriptStringEncode(launchUrl)));
+                    html.Append("');\">");
+                }
+                else
+                {
+                    html.Append("\">");
+                }
                 html.Append("<div class=\"card h-100 shadow-sm\"><div class=\"card-body d-flex align-items-center gap-3\">");
 
                 if (!String.IsNullOrEmpty(iconUrl))
@@ -357,8 +368,37 @@
             if (typeof onUserActivity === "function") onUserActivity(e);
         });
     </script>
+<script type="text/javascript">
+var rdwebRdpShell = null;
+function initialiseRdpShell() {
+    try {
+        if (window.ActiveXObject) {
+            try { rdwebRdpShell = new ActiveXObject("MsRdpWebAccess.MsRdpClientShell"); }
+            catch (e) {
+                try {
+                    var legacy = new ActiveXObject("MsRdpClient.MsRdpClient");
+                    if (legacy && legacy.MsRdpClientShell) rdwebRdpShell = legacy.MsRdpClientShell;
+                } catch (ignored) { }
+            }
+        }
+    } catch (ignored) { rdwebRdpShell = null; }
+}
+function launchRdpResource(rdpContents, url) {
+    if (rdwebRdpShell) {
+        try {
+            var contents = unescape(rdpContents);
+            if (typeof getUserNameRdpProperty === "function") contents += getUserNameRdpProperty();
+            rdwebRdpShell.RdpFileContents = contents;
+            rdwebRdpShell.Launch();
+            return false;
+        } catch (e) { }
+    }
+    window.location.href = url;
+    return false;
+}
+</script>
 </head>
-<body>
+<body onload="initialiseRdpShell();">
     <header class="rdweb-header">
         <div class="container py-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
             <div>
