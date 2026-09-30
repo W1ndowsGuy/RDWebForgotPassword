@@ -378,7 +378,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title><%=AntiXssEncoder.HtmlEncode(L_CompanyName_Text, false)%> - Login</title>
-<link href="../css/bootstrap.min.css" rel="stylesheet" />
+<link href="../css/bootstrap-5.3.8.min.css" rel="stylesheet" />
 <script src="../webscripts-domain.js"></script>
 <style>
 html,body{min-height:100%} body{min-height:100vh;background:url('../images/EngOne.jpg') center/cover fixed no-repeat}
@@ -431,6 +431,6 @@ html,body{min-height:100%} body{min-height:100vh;background:url('../images/EngOn
 <div class="carousel-indicators"><button type="button" data-bs-target="#myCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button><button type="button" data-bs-target="#myCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button><button type="button" data-bs-target="#myCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button></div>
 <div class="carousel-inner"><div class="carousel-item active"><div class="carousel-caption"><h2 class="h4"><%=HttpUtility.HtmlEncode(carouselTitle1)%></h2><p class="mb-0"><%=HttpUtility.HtmlEncode(carouselText1)%></p></div></div><div class="carousel-item"><div class="carousel-caption"><h2 class="h4"><%=HttpUtility.HtmlEncode(carouselTitle2)%></h2><p class="mb-0"><%=HttpUtility.HtmlEncode(carouselText2)%></p></div></div><div class="carousel-item"><div class="carousel-caption"><h2 class="h4"><%=HttpUtility.HtmlEncode(carouselTitle3)%></h2><p class="mb-0"><%=HttpUtility.HtmlEncode(carouselText3)%></p></div></div></div>
 <button class="carousel-control-prev" type="button" data-bs-target="#myCarousel" data-bs-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="visually-hidden">Previous</span></button><button class="carousel-control-next" type="button" data-bs-target="#myCarousel" data-bs-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="visually-hidden">Next</span></button></div>
-<script src="../js/bootstrap.bundle.min.js"></script>
+<script src="../js/bootstrap-5.3.8.bundle.min.js"></script>
 <script>var strBaseUrl="<%=HttpUtility.JavaScriptStringEncode(baseUrl.AbsoluteUri)%>"; var strPrivacyUrl="<%=HttpUtility.JavaScriptStringEncode(strPrivacyUrl)%>"; var strHelpUrl="<%=HttpUtility.JavaScriptStringEncode(sHelpSourceServer)%>";</script>
 </body></html>
