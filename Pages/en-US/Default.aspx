@@ -86,9 +86,11 @@
             domainUserName = identity.Name;
         }
 
+        // Load environment/runtime settings first so values such as
+        // passwordExpiryDays are available before user expiry is calculated.
+        LoadCarouselConfiguration();
         LoadUserCustomizations();
         isWebAdmin = IsMemberOfWebAdmins();
-        LoadCarouselConfiguration();
 
         try
         {
