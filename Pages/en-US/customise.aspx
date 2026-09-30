@@ -20,7 +20,11 @@
     {
         if (!HttpContext.Current.User.Identity.IsAuthenticated) { Response.Redirect("login.aspx?ReturnUrl=" + HttpUtility.UrlEncode(Request.Path)); return; }
         if (!IsWebAdmin()) { Response.StatusCode = 403; Response.End(); return; }
-        if (Request.HttpMethod == "POST") { if ((Request.Form["action"] ?? "") == "reset") ResetDefaults(); else Save(); }
+        if (Request.HttpMethod == "POST") {
+            string action=Request.Form["action"]??"save";
+            if(action.StartsWith("reset-")) ResetOne(action.Substring(6));
+            else Save();
+        }
         LoadConfig();
     }
 
@@ -71,14 +75,24 @@
         } catch(Exception ex){ Status="Could not read configuration: "+ex.Message; }
     }
 
-    void ResetDefaults()
+    void ResetOne(string item)
     {
         try {
-            XDocument d=new XDocument(new XElement("carousel", new XElement("environmentName", ""), new XElement("passwordExpiryDays", "30"), new XElement("colour", "#2d1450")));
-            string[] dt={ "", "Maintenence Outage", "HELP", "Security" };
-            string[] dm={ "", "Notifications for outages will also be here in future", "If you having any issues with login please click 'Help'", "Warning: By logging in to this web page, you confirm that this computer complies with your organization's security policy." };
-            for(int i=1;i<=3;i++) d.Root.Add(new XElement("slide",new XAttribute("id",i),new XAttribute("expires",""),new XElement("title",dt[i]),new XElement("text",dm[i])));
-            string path=ConfigPath(); System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)); d.Save(path); Status="Carousel settings reset to defaults.";
+            LoadConfig();
+            if(item=="environment") EnvironmentName="";
+            else if(item=="password") PasswordExpiryDays=30;
+            else if(item=="colour") CarouselColour="#2d1450";
+            else if(item.StartsWith("slide")) {
+                int i; if(!Int32.TryParse(item.Substring(5),out i)||i<1||i>3) throw new Exception("Invalid slide.");
+                string[] dt={ "", "Maintenence Outage", "HELP", "Security" };
+                string[] dm={ "", "Notifications for outages will also be here in future", "If you having any issues with login please click 'Help'", "Warning: By logging in to this web page, you confirm that this computer complies with your organization's security policy." };
+                Titles[i]=dt[i]; Texts[i]=dm[i]; Expires[i]="";
+            } else throw new Exception("Unknown setting.");
+
+            XDocument d=new XDocument(new XElement("carousel",new XElement("environmentName",EnvironmentName),new XElement("passwordExpiryDays",PasswordExpiryDays),new XElement("colour",CarouselColour)));
+            for(int i=1;i<=3;i++) d.Root.Add(new XElement("slide",new XAttribute("id",i),new XAttribute("expires",Expires[i]??""),new XElement("title",Titles[i]),new XElement("text",Texts[i])));
+            string path=ConfigPath(); System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)); d.Save(path);
+            Status="Setting reset to default.";
         } catch(Exception ex){ Status="Reset failed: "+ex.Message; }
     }
 
@@ -107,15 +121,15 @@
 <% if(!String.IsNullOrEmpty(Status)){ %><div class="alert alert-info"><%=HttpUtility.HtmlEncode(Status)%></div><% } %>
 <form method="post" action="customise.aspx">
 <div class="card mb-3"><div class="card-body"><h2 class="h5">Environment settings</h2>
-<div class="mb-3"><label class="form-label" for="environmentName">Display name</label><input class="form-control" style="max-width:420px" id="environmentName" name="environmentName" value="<%=HttpUtility.HtmlAttributeEncode(EnvironmentName)%>" maxlength="100"/><div class="form-text">Optional. Leave blank to use the automatically detected domain name.</div></div>
-<div><label class="form-label" for="passwordExpiryDays">Password expiry days</label><input class="form-control" style="max-width:160px" type="number" min="1" max="3650" id="passwordExpiryDays" name="passwordExpiryDays" value="<%=PasswordExpiryDays%>"/><div class="form-text">Used to calculate the password expiry date shown to users.</div></div>
+<div class="mb-3"><label class="form-label" for="environmentName">Display name</label><div class="d-flex gap-2 align-items-start"><input class="form-control" style="max-width:420px" id="environmentName" name="environmentName" value="<%=HttpUtility.HtmlAttributeEncode(EnvironmentName)%>" maxlength="100"/><button class="btn btn-outline-secondary text-nowrap" type="submit" name="action" value="reset-environment">Reset to default</button></div><div class="form-text">Optional. Default uses the automatically detected domain name.</div></div>
+<div><label class="form-label" for="passwordExpiryDays">Password expiry days</label><div class="d-flex gap-2 align-items-start"><input class="form-control" style="max-width:160px" type="number" min="1" max="3650" id="passwordExpiryDays" name="passwordExpiryDays" value="<%=PasswordExpiryDays%>"/><button class="btn btn-outline-secondary text-nowrap" type="submit" name="action" value="reset-password">Reset to default</button></div><div class="form-text">Used to calculate the password expiry date shown to users. Default: 30 days.</div></div>
 </div></div>
 <div class="card mb-3"><div class="card-body"><h2 class="h5">Carousel colour</h2>
-<div class="d-flex align-items-center gap-3"><input type="color" class="form-control form-control-color" id="carouselColour" name="carouselColour" value="<%=HttpUtility.HtmlAttributeEncode(CarouselColour)%>" title="Choose carousel colour"/><span class="text-muted">Choose the carousel colour for this environment.</span></div>
+<div class="d-flex align-items-center gap-3"><input type="color" class="form-control form-control-color" id="carouselColour" name="carouselColour" value="<%=HttpUtility.HtmlAttributeEncode(CarouselColour)%>" title="Choose carousel colour"/><button class="btn btn-outline-secondary text-nowrap" type="submit" name="action" value="reset-colour">Reset to default</button><span class="text-muted">Choose the carousel colour for this environment.</span></div>
 </div></div>
 <% for(int i=1;i<=3;i++){ %><div class="card mb-3"><div class="card-body"><div class="d-flex justify-content-between align-items-center"><h2 class="h5">Slide <%=i%></h2><span class="badge <%= States[i].StartsWith("EXPIRED") ? "bg-secondary" : (States[i]=="ACTIVE" ? "bg-success" : "bg-info text-dark") %>"><%=HttpUtility.HtmlEncode(States[i])%></span></div>
 <div class="mb-3"><label class="form-label" for="title<%=i%>">Title</label><input class="form-control" id="title<%=i%>" name="title<%=i%>" value="<%=HttpUtility.HtmlAttributeEncode(Titles[i])%>" maxlength="120"/></div>
 <div class="mb-3"><label class="form-label" for="text<%=i%>">Message</label><textarea class="form-control" id="text<%=i%>" name="text<%=i%>" rows="3" maxlength="1000"><%=HttpUtility.HtmlEncode(Texts[i])%></textarea></div>
-<div><label class="form-label" for="expires<%=i%>">Expiry date/time (optional)</label><input class="form-control" style="max-width:320px" type="datetime-local" id="expires<%=i%>" name="expires<%=i%>" value="<% DateTime ed; if(DateTime.TryParse(Expires[i],null,DateTimeStyles.RoundtripKind,out ed)){ %><%=ed.ToString("yyyy-MM-ddTHH:mm")%><% } %>"/><div class="form-text">Leave blank to keep this message until it is changed.</div></div>
+<div><label class="form-label" for="expires<%=i%>">Expiry date/time (optional)</label><input class="form-control" style="max-width:320px" type="datetime-local" id="expires<%=i%>" name="expires<%=i%>" value="<% DateTime ed; if(DateTime.TryParse(Expires[i],null,DateTimeStyles.RoundtripKind,out ed)){ %><%=ed.ToString("yyyy-MM-ddTHH:mm")%><% } %>"/><div class="form-text">Leave blank to keep this message until it is changed.</div></div><div class="mt-3"><button class="btn btn-outline-secondary" type="submit" name="action" value="reset-slide<%=i%>">Reset this message to default</button></div>
 </div></div><% } %>
-<div class="d-flex gap-2"><button class="btn btn-primary" type="submit" name="action" value="save">Save carousel settings</button><button class="btn btn-outline-danger" type="submit" name="action" value="reset" onclick="return confirm('Reset carousel colour and all messages to their defaults?');">Reset all to defaults</button></div></form></div></main></body></html>
+<div class="d-flex gap-2"><button class="btn btn-primary" type="submit" name="action" value="save">Save settings</button></div></form></div></main></body></html>
