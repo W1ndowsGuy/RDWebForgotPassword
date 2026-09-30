@@ -115,7 +115,7 @@
     }
 </script>
 <!doctype html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>RDWeb Carousel Customisation</title><link href="../css/bootstrap.min.css" rel="stylesheet"/>
+<title>RDWeb Carousel Customisation</title><link href="../css/bootstrap-5.3.8.min.css" rel="stylesheet"/>
 <style>body{background:url('../images/EngOne.jpg') center center/cover fixed no-repeat;min-height:100vh}.panel{background:rgba(255,255,255,.92);border-radius:1rem}.form-control{background:rgba(255,255,255,.95)}</style></head>
 <body><main class="container py-4"><div class="panel p-4 shadow"><div class="d-flex justify-content-between align-items-center mb-4"><div><h1 class="h3 mb-1">Carousel Customisation</h1><p class="text-muted mb-0">Custom messages automatically revert to the built-in defaults after their expiry time.</p></div><a class="btn btn-outline-secondary" href="default.aspx">Back to RDWeb</a></div>
 <% if(!String.IsNullOrEmpty(Status)){ %><div class="alert alert-info"><%=HttpUtility.HtmlEncode(Status)%></div><% } %>
