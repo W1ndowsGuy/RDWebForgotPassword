@@ -333,15 +333,15 @@
         body { background:url('../images/EngOne.jpg') center center / cover fixed no-repeat; min-height:100vh; }
         .container.py-4 { background:rgba(255,255,255,.48); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.58); border-radius:1.15rem; margin-top:3.5rem; margin-bottom:2rem; padding:1.75rem 2rem !important; box-shadow:0 .5rem 1.5rem rgba(0,0,0,.12); }
         .resource-grid{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:14px!important}.resource-item{min-width:0}.resource-card{display:block;height:100%}.resource-card .card { background:rgba(255,255,255,.38); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); min-height:128px; border:1px solid rgba(255,255,255,.52)!important; border-radius:.75rem; box-shadow:none!important }.resource-card .card-body{padding:.9rem .55rem!important;gap:.55rem!important}.resource-card .fw-semibold{font-size:.82rem;line-height:1.15;word-break:break-word}
-        .rdweb-header { margin:14px 18px 0; border:1px solid rgba(255,255,255,.65); border-radius:1rem; background:rgba(255,255,255,.76); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); box-shadow:0 .35rem 1rem rgba(0,0,0,.12); }
+        .rdweb-header { margin:14px 18px 0; border:1px solid rgba(255,255,255,.22); border-radius:1rem; background:color-mix(in srgb, <%= HttpUtility.HtmlAttributeEncode(carouselColour) %> 68%, transparent); color:#fff; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); box-shadow:0 .35rem 1rem rgba(0,0,0,.12); }
         .rdweb-header .container { max-width:none; padding-left:1.5rem; padding-right:1.5rem; background:transparent; margin:0; border-radius:0; box-shadow:none; }
         .rdweb-brand-logo { width:56px; height:56px; object-fit:contain; }
         .rdweb-brand-name { line-height:1.05; font-weight:600; }
-        .rdweb-header .btn { background:rgba(255,255,255,.45); }
+        .rdweb-header a:not(.btn){color:#fff}.rdweb-header .btn { color:#fff; border-color:rgba(255,255,255,.62); background:rgba(255,255,255,.10); }.rdweb-header .btn:hover{background:rgba(255,255,255,.22);color:#fff}
         .resource-card .card { border:0; transition:transform .12s ease, box-shadow .12s ease; }
          .resource-card:hover .card { transform:translateY(-3px); background:rgba(255,255,255,.56); box-shadow:0 .35rem .9rem rgba(0,0,0,.12)!important; }
         .resource-icon { width:52px; height:52px; object-fit:contain; flex:0 0 52px; }
-        .rdweb-carousel { position:fixed; left:14px; right:14px; bottom:12px; z-index:1030; background:color-mix(in srgb, <%= HttpUtility.HtmlAttributeEncode(carouselColour) %> 82%, transparent); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.18); border-radius:1rem; color:#fff; overflow:hidden; box-shadow:0 -.25rem 1rem rgba(0,0,0,.12); }
+        .rdweb-carousel { position:fixed; left:14px; right:14px; bottom:12px; z-index:1030; background:color-mix(in srgb, <%= HttpUtility.HtmlAttributeEncode(carouselColour) %> 68%, transparent); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.18); border-radius:1rem; color:#fff; overflow:hidden; box-shadow:0 -.25rem 1rem rgba(0,0,0,.12); }
         .rdweb-carousel .carousel-item { height:145px; }
         .rdweb-carousel .carousel-caption { position:static; padding:1.4rem 5rem 2rem; color:#fff; }
         main.container { margin-bottom:175px !important; }
