@@ -24,6 +24,7 @@
     public int sessionTimeoutMinutes = 20;
     public string displayName = "";
     public string passwordExpiration = "";
+    public int passwordDaysRemaining = -1;
     public string logonHeader = "";
     public bool isWebAdmin = false;
     public string carouselColour = "#2d1450";
@@ -360,7 +361,7 @@
                 <div class="small">Welcome <%= HttpUtility.HtmlEncode(displayName) %></div>
                 <% if (!String.IsNullOrEmpty(passwordExpiration)) { %>
                 <div class="small">
-                    <a href="password.aspx" class="<%= passwordExpiration.IndexOf("expires in", StringComparison.OrdinalIgnoreCase) >= 0 && passwordExpiration.IndexOf("does not expire", StringComparison.OrdinalIgnoreCase) < 0 ? "text-danger fw-bold" : "" %>"><%= HttpUtility.HtmlEncode(passwordExpiration.Replace(" Click here to reset now.", "")) %></a>
+                    <a href="password.aspx" class="<%= passwordDaysRemaining >= 0 && passwordDaysRemaining < 5 ? "text-danger fw-bold" : "text-primary" %>"><%= HttpUtility.HtmlEncode(passwordExpiration.Replace(" Click here to reset now.", "")) %></a>
                 </div>
                 <% } %>
             </div>
