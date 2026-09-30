@@ -64,20 +64,23 @@
     }
     string HistoryPath(){ return Server.MapPath("../config/customise-history.xml"); }
 
-    void AddHistory(string action, string details)
+    void AddHistory(string action, System.Collections.Generic.List<XElement> changes)
     {
         try {
+            if(changes==null||changes.Count==0) return;
             string path=HistoryPath(); Directory.CreateDirectory(Path.GetDirectoryName(path));
             XDocument h=File.Exists(path)?XDocument.Load(path):new XDocument(new XElement("history"));
-            h.Root.AddFirst(new XElement("entry",new XAttribute("time",DateTime.Now.ToString("o")),new XAttribute("user",UserName()),new XAttribute("action",action),new XElement("details",details??"")));
-            h.Save(path);
+            XElement entry=new XElement("entry",new XAttribute("time",DateTime.Now.ToString("o")),new XAttribute("user",UserName()),new XAttribute("action",action));
+            foreach(XElement change in changes) entry.Add(change);
+            h.Root.AddFirst(entry); h.Save(path);
         } catch { }
     }
 
-    string ConfigSummary()
+    XElement Change(string field,string before,string after,string message)
     {
-        return "Environment: "+(String.IsNullOrWhiteSpace(EnvironmentName)?"Automatic":EnvironmentName)+"; Password expiry: "+PasswordExpiryDays+" days; Colour: "+CarouselColour+
-            "; Slide 1: "+Titles[1]+"; Slide 2: "+Titles[2]+"; Slide 3: "+Titles[3];
+        XElement x=new XElement("change",new XAttribute("field",field),new XElement("before",before??""),new XElement("after",after??""));
+        if(!String.IsNullOrEmpty(message)) x.Add(new XElement("message",message));
+        return x;
     }
 
     void LoadConfig()
@@ -107,6 +110,8 @@
     {
         try {
             LoadConfig();
+            string oldEnv=EnvironmentName, oldColour=CarouselColour; int oldPwd=PasswordExpiryDays;
+            string[] oldTitles=(string[])Titles.Clone(), oldTexts=(string[])Texts.Clone(), oldExpires=(string[])Expires.Clone();
             if(item=="environment") EnvironmentName="";
             else if(item=="password") PasswordExpiryDays=30;
             else if(item=="colour") CarouselColour="#2d1450";
@@ -119,8 +124,17 @@
 
             XDocument d=new XDocument(new XElement("carousel",new XElement("environmentName",EnvironmentName),new XElement("passwordExpiryDays",PasswordExpiryDays),new XElement("colour",CarouselColour)));
             for(int i=1;i<=3;i++) d.Root.Add(new XElement("slide",new XAttribute("id",i),new XAttribute("expires",Expires[i]??""),new XElement("title",Titles[i]),new XElement("text",Texts[i])));
-            string path=ConfigPath(); System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)); d.Save(path);
-            AddHistory("Reset "+item, ConfigSummary());
+            string path=ConfigPath(); Directory.CreateDirectory(Path.GetDirectoryName(path)); d.Save(path);
+            var changes=new System.Collections.Generic.List<XElement>();
+            if(oldEnv!=EnvironmentName) changes.Add(Change("Environment name",oldEnv,EnvironmentName,""));
+            if(oldPwd!=PasswordExpiryDays) changes.Add(Change("Password expiry days",oldPwd.ToString(),PasswordExpiryDays.ToString(),""));
+            if(oldColour!=CarouselColour) changes.Add(Change("Carousel colour",oldColour,CarouselColour,""));
+            for(int i=1;i<=3;i++){
+                if(oldTitles[i]!=Titles[i]) changes.Add(Change("Slide "+i+" title",oldTitles[i],Titles[i],""));
+                if(oldTexts[i]!=Texts[i]) changes.Add(Change("Slide "+i+" message",oldTexts[i],Texts[i],Texts[i]));
+                if(oldExpires[i]!=Expires[i]) changes.Add(Change("Slide "+i+" expiry",oldExpires[i],Expires[i],""));
+            }
+            AddHistory("Reset "+item,changes);
             Status="Setting reset to default.";
         } catch(Exception ex){ Status="Reset failed: "+ex.Message; }
     }
@@ -128,22 +142,33 @@
     void Save()
     {
         try {
+            LoadConfig();
+            string oldEnv=EnvironmentName, oldColour=CarouselColour; int oldPwd=PasswordExpiryDays;
+            string[] oldTitles=(string[])Titles.Clone(), oldTexts=(string[])Texts.Clone(), oldExpires=(string[])Expires.Clone();
             string colour=Request.Form["carouselColour"]??"#2d1450";
             string environment=(Request.Form["environmentName"]??"").Trim();
             int passwordDays; if(!Int32.TryParse(Request.Form["passwordExpiryDays"]??"30",out passwordDays)||passwordDays<1||passwordDays>3650) throw new Exception("Password expiry days must be between 1 and 3650.");
             if(!System.Text.RegularExpressions.Regex.IsMatch(colour, "^#[0-9A-Fa-f]{6}$")) throw new Exception("Carousel colour must be a valid colour.");
-            XDocument d=new XDocument(new XElement("carousel", new XElement("environmentName", environment), new XElement("passwordExpiryDays", passwordDays), new XElement("colour", colour)));
+            XDocument d=new XDocument(new XElement("carousel",new XElement("environmentName",environment),new XElement("passwordExpiryDays",passwordDays),new XElement("colour",colour)));
+            string[] newTitles={ "", "", "", "" }, newTexts={ "", "", "", "" }, newExpires={ "", "", "", "" };
             for(int i=1;i<=3;i++){
-                string title=Request.Form["title"+i]??""; string text=Request.Form["text"+i]??""; string raw=Request.Form["expires"+i]??""; string expiry="";
-                DateTime dt; if(!String.IsNullOrWhiteSpace(raw)){ if(!DateTime.TryParse(raw, out dt)) throw new Exception("Slide "+i+" has an invalid expiry date/time."); expiry=dt.ToString("o"); }
+                string title=Request.Form["title"+i]??"", text=Request.Form["text"+i]??"", raw=Request.Form["expires"+i]??"", expiry="";
+                DateTime dt; if(!String.IsNullOrWhiteSpace(raw)){if(!DateTime.TryParse(raw,out dt))throw new Exception("Slide "+i+" has an invalid expiry date/time.");expiry=dt.ToString("o");}
+                newTitles[i]=title; newTexts[i]=text; newExpires[i]=expiry;
                 d.Root.Add(new XElement("slide",new XAttribute("id",i),new XAttribute("expires",expiry),new XElement("title",title),new XElement("text",text)));
             }
-            string path=ConfigPath(); System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path));
-            d.Save(path);
-            EnvironmentName=environment; PasswordExpiryDays=passwordDays; CarouselColour=colour;
-            for(int i=1;i<=3;i++){ XElement s=d.Root.Elements("slide").First(x=>(string)x.Attribute("id")==i.ToString()); Titles[i]=(string)s.Element("title")??""; Texts[i]=(string)s.Element("text")??""; Expires[i]=(string)s.Attribute("expires")??""; }
-            AddHistory("Saved settings", ConfigSummary());
-            Status="Carousel settings saved.";
+            string path=ConfigPath(); Directory.CreateDirectory(Path.GetDirectoryName(path)); d.Save(path);
+            var changes=new System.Collections.Generic.List<XElement>();
+            if(oldEnv!=environment) changes.Add(Change("Environment name",oldEnv,environment,""));
+            if(oldPwd!=passwordDays) changes.Add(Change("Password expiry days",oldPwd.ToString(),passwordDays.ToString(),""));
+            if(oldColour!=colour) changes.Add(Change("Carousel colour",oldColour,colour,""));
+            for(int i=1;i<=3;i++){
+                if(oldTitles[i]!=newTitles[i]) changes.Add(Change("Slide "+i+" title",oldTitles[i],newTitles[i],""));
+                if(oldTexts[i]!=newTexts[i]) changes.Add(Change("Slide "+i+" message",oldTexts[i],newTexts[i],newTexts[i]));
+                if(oldExpires[i]!=newExpires[i]) changes.Add(Change("Slide "+i+" expiry",oldExpires[i],newExpires[i],""));
+            }
+            AddHistory("Saved settings",changes);
+            Status=changes.Count==0?"No settings were changed.":"Carousel settings saved.";
         } catch(Exception ex){ Status="Save failed: "+ex.Message; }
     }
 </script>
