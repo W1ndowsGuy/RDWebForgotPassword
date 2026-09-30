@@ -328,7 +328,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title><%= HttpUtility.HtmlEncode(workspaceName) %></title>
-    <link href="../css/bootstrap.min.css" rel="stylesheet" />
+    <link href="../css/bootstrap-5.3.8.min.css" rel="stylesheet" />
     <style>
         body { background:url('../images/EngOne.jpg') center center / cover fixed no-repeat; min-height:100vh; }
         .container.py-4 { background:rgba(255,255,255,.20); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.58); border-radius:1.15rem; margin-top:3.5rem; margin-bottom:2rem; padding:1.75rem 2rem !important; box-shadow:0 .5rem 1.5rem rgba(0,0,0,.12); }
@@ -462,6 +462,6 @@ function launchRdpResource(rdpContents, url) {
         <button class="carousel-control-prev" type="button" data-bs-target="#myCarousel" data-bs-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="visually-hidden">Previous</span></button>
         <button class="carousel-control-next" type="button" data-bs-target="#myCarousel" data-bs-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="visually-hidden">Next</span></button>
     </div>
-    <script src="../js/bootstrap.bundle.min.js"></script>
+    <script src="../js/bootstrap-5.3.8.bundle.min.js"></script>
 </body>
 </html>
