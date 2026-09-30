@@ -410,8 +410,7 @@ function launchRdpResource(rdpContents, url) {
                 <div class="rdweb-brand-name">Rural Payments<br/>Agency</div>
                 <div class="vr mx-2"></div>
                 <div>
-                <div class="h4 mb-0"><%= HttpUtility.HtmlEncode(logonHeader) %></div>
-                <div class="small">Welcome <%= HttpUtility.HtmlEncode(displayName) %></div>
+                <div class="h4 mb-0">Welcome <%= HttpUtility.HtmlEncode(displayName) %>, <%= HttpUtility.HtmlEncode(logonHeader.ToLowerInvariant()) %></div>
                 <% if (!String.IsNullOrEmpty(passwordExpiration)) { %>
                 <div class="small">
                     <a href="password.aspx" class="<%= passwordDaysRemaining >= 0 && passwordDaysRemaining < 5 ? "text-danger fw-bold" : "text-primary" %>"><%= HttpUtility.HtmlEncode(passwordExpiration.Replace(" Click here to reset now.", "")) %></a>
