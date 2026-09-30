@@ -383,8 +383,9 @@
 <style>
 html,body{min-height:100%} body{min-height:100vh;background:url('../images/EngOne.jpg') center/cover fixed no-repeat}
 .page-wrap{min-height:100vh;display:flex;align-items:center}.brand{color:#fff;text-align:center}.brand img{width:300px;max-width:75%}
-.login-panel{background:rgba(255,255,255,.72);border-radius:1rem;padding:2rem;max-width:520px;margin:auto}.wrng{color:#b02a37}
-.rdweb-carousel{position:fixed;left:0;right:0;bottom:0;z-index:1030;background:<%=HttpUtility.HtmlAttributeEncode(carouselColour)%>;color:#fff}.rdweb-carousel .carousel-item{height:145px}.rdweb-carousel .carousel-caption{position:static;padding:1.4rem 5rem 2rem;color:#fff}.page-wrap{padding-bottom:165px!important}
+.login-panel{background:rgba(255,255,255,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.60);border-radius:1rem;padding:2rem;max-width:520px;margin:auto;box-shadow:0 .5rem 1.5rem rgba(0,0,0,.15)}.wrng{color:#b02a37}
+.brand{background:rgba(255,255,255,.16);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.22);border-radius:1rem;padding:2rem;text-shadow:0 1px 3px rgba(0,0,0,.35)}
+.rdweb-carousel{position:fixed;left:14px;right:14px;bottom:12px;z-index:1030;background:color-mix(in srgb,<%=HttpUtility.HtmlAttributeEncode(carouselColour)%> 82%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.18);border-radius:1rem;color:#fff;overflow:hidden;box-shadow:0 -.25rem 1rem rgba(0,0,0,.12)}.rdweb-carousel .carousel-item{height:145px}.rdweb-carousel .carousel-caption{position:static;padding:1.4rem 5rem 2rem;color:#fff}.page-wrap{padding-bottom:165px!important}
 </style>
 </head>
 <body onload="onLoginPageLoad(event)" onunload="onPageUnload(event)">
