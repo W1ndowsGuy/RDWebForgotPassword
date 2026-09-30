@@ -8,6 +8,9 @@
 <% @Import Namespace="System.Web.Security.AntiXss" %>
 <% @Import Namespace="System.Net" %>
 <% @Import Namespace="System.Net.NetworkInformation" %>
+<% @Import Namespace="System.Xml.Linq" %>
+<% @Import Namespace="System.Linq" %>
+<% @Import Namespace="System.Globalization" %>
 
 <script language="C#" runat=server>
 
@@ -72,6 +75,13 @@
     public Uri baseUrl;
     public string strPrivacyUrl = "";
     public string myString ="login";
+    public string carouselTitle1 = "Maintenence Outage";
+    public string carouselText1 = "Notifications for outages will also be here in future";
+    public string carouselTitle2 = "HELP";
+    public string carouselText2 = "If you having any issues with login please click 'Help'";
+    public string carouselTitle3 = "Security";
+    public string carouselText3 = "Warning: By logging in to this web page, you confirm that this computer complies with your organization's security policy.";
+    public string carouselColour = "#2d1450";
 
     public string strPrivateModeTimeout = "240";
     public string strPublicModeTimeout = "20";
@@ -302,7 +312,33 @@
             bFailedLogon = false;
         }
         
+        LoadCarouselConfiguration();
         Response.Cache.SetCacheability(HttpCacheability.NoCache);
+    }
+
+    private void LoadCarouselConfiguration()
+    {
+        try {
+            string path = Server.MapPath("../config/carousel.xml");
+            if (!System.IO.File.Exists(path)) return;
+            XDocument doc = XDocument.Load(path);
+            XElement colour = doc.Root.Element("colour");
+            if (colour != null && !String.IsNullOrWhiteSpace(colour.Value)) carouselColour = colour.Value.Trim();
+            DateTime now = DateTime.Now;
+            for (int i = 1; i <= 3; i++) {
+                XElement slide = doc.Root.Elements("slide").FirstOrDefault(x => (string)x.Attribute("id") == i.ToString());
+                if (slide == null) continue;
+                string expiry = (string)slide.Attribute("expires") ?? "";
+                DateTime exp;
+                bool active = String.IsNullOrWhiteSpace(expiry) || (DateTime.TryParse(expiry, null, DateTimeStyles.RoundtripKind, out exp) && exp > now);
+                if (!active) continue;
+                string title = (string)slide.Element("title");
+                string text = (string)slide.Element("text");
+                if (i == 1) { if (title != null) carouselTitle1 = title; if (text != null) carouselText1 = text; }
+                if (i == 2) { if (title != null) carouselTitle2 = title; if (text != null) carouselText2 = text; }
+                if (i == 3) { if (title != null) carouselTitle3 = title; if (text != null) carouselText3 = text; }
+            }
+        } catch { }
     }
     
     private void SafeRedirect(string strRedirectUrl)
@@ -346,6 +382,7 @@
 html,body{min-height:100%} body{min-height:100vh;background:url('../images/EngOne.jpg') center/cover fixed no-repeat}
 .page-wrap{min-height:100vh;display:flex;align-items:center}.brand{color:#fff;text-align:center}.brand img{width:300px;max-width:75%}
 .login-panel{background:rgba(255,255,255,.72);border-radius:1rem;padding:2rem;max-width:520px;margin:auto}.wrng{color:#b02a37}
+.rdweb-carousel{position:fixed;left:0;right:0;bottom:0;z-index:1030;background:<%=HttpUtility.HtmlAttributeEncode(carouselColour)%>;color:#fff}.rdweb-carousel .carousel-item{height:145px}.rdweb-carousel .carousel-caption{position:static;padding:1.4rem 5rem 2rem;color:#fff}.page-wrap{padding-bottom:165px!important}
 </style>
 </head>
 <body onload="onLoginPageLoad(event)" onunload="onPageUnload(event)">
@@ -387,5 +424,10 @@ html,body{min-height:100%} body{min-height:100vh;background:url('../images/EngOn
 <div id="trPrvtWrn" style="display:none"><%=L_PrivateWarningLabel_Text%></div><div id="trPrvtWrnNoAx" style="display:none"><%=L_PrivateWarningLabelNoAx_Text%></div>
 <hr/><p class="small text-muted mb-0"><%=L_TSWATimeoutLabel_Text%></p>
 </div></form></div></div></div></div>
+<div id="myCarousel" class="carousel slide rdweb-carousel" data-bs-ride="carousel">
+<div class="carousel-indicators"><button type="button" data-bs-target="#myCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button><button type="button" data-bs-target="#myCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button><button type="button" data-bs-target="#myCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button></div>
+<div class="carousel-inner"><div class="carousel-item active"><div class="carousel-caption"><h2 class="h4"><%=HttpUtility.HtmlEncode(carouselTitle1)%></h2><p class="mb-0"><%=HttpUtility.HtmlEncode(carouselText1)%></p></div></div><div class="carousel-item"><div class="carousel-caption"><h2 class="h4"><%=HttpUtility.HtmlEncode(carouselTitle2)%></h2><p class="mb-0"><%=HttpUtility.HtmlEncode(carouselText2)%></p></div></div><div class="carousel-item"><div class="carousel-caption"><h2 class="h4"><%=HttpUtility.HtmlEncode(carouselTitle3)%></h2><p class="mb-0"><%=HttpUtility.HtmlEncode(carouselText3)%></p></div></div></div>
+<button class="carousel-control-prev" type="button" data-bs-target="#myCarousel" data-bs-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="visually-hidden">Previous</span></button><button class="carousel-control-next" type="button" data-bs-target="#myCarousel" data-bs-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="visually-hidden">Next</span></button></div>
+<script src="../js/bootstrap.bundle.min.js"></script>
 <script>var strBaseUrl="<%=HttpUtility.JavaScriptStringEncode(baseUrl.AbsoluteUri)%>"; var strPrivacyUrl="<%=HttpUtility.JavaScriptStringEncode(strPrivacyUrl)%>"; var strHelpUrl="<%=HttpUtility.JavaScriptStringEncode(sHelpSourceServer)%>";</script>
 </body></html>
