@@ -34,7 +34,7 @@
     public string carouselText2 = "If you having any issues with login please click 'Help'";
     public string carouselTitle3 = "Security";
     public string carouselText3 = "Warning: By logging in to this web page, you confirm that this computer complies with your organization's security policy.";
-    public static int daysToAdd = 30;
+    public int daysToAdd = 30;
     const int PasswordExpiryThreshold = 10;
 
     protected void Page_PreInit(object sender, EventArgs e)
@@ -190,6 +190,11 @@
             string path = Server.MapPath("../config/carousel.xml");
             if (!System.IO.File.Exists(path)) return;
             XDocument doc = XDocument.Load(path);
+            XElement env = doc.Root.Element("environmentName");
+            if (env != null && !String.IsNullOrWhiteSpace(env.Value)) logonHeader = "You are logged on to " + env.Value.Trim();
+            XElement pwd = doc.Root.Element("passwordExpiryDays");
+            int configuredDays;
+            if (pwd != null && Int32.TryParse(pwd.Value, out configuredDays) && configuredDays > 0 && configuredDays <= 3650) daysToAdd = configuredDays;
             XElement colour = doc.Root.Element("colour");
             if (colour != null && !String.IsNullOrWhiteSpace(colour.Value))
                 carouselColour = colour.Value.Trim();
