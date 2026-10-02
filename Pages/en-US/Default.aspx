@@ -88,8 +88,8 @@
 
         // Load environment/runtime settings first so values such as
         // passwordExpiryDays are available before user expiry is calculated.
-        LoadCarouselConfiguration();
         LoadUserCustomizations();
+        LoadCarouselConfiguration();
         isWebAdmin = IsMemberOfWebAdmins();
 
         try
