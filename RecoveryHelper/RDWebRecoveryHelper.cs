@@ -1,6 +1,7 @@
 using System;
 using System.DirectoryServices;
 using System.DirectoryServices.ActiveDirectory;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
 using System.Net.Mail;
