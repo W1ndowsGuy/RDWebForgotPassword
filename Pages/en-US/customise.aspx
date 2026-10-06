@@ -229,7 +229,17 @@
                 if(oldExpires[i]!=newExpires[i]) changes.Add(Change("Slide "+i+" expiry",oldExpires[i],newExpires[i],""));
             }
             AddHistory("Saved settings",changes);
-            Status=changes.Count==0?"No settings were changed.":"Carousel settings saved.";
+            // Keep the values just saved populated when the page renders this response.
+            EnvironmentName=environment;
+            PasswordExpiryDays=passwordDays;
+            CarouselColour=colour;
+            PasswordRecoveryEnabled=recoveryEnabled;
+            SmtpServer=smtpServer;
+            SmtpPort=smtpPort;
+            FromAddress=fromAddress;
+            RecoveryCodeExpiryMinutes=codeExpiry;
+            for(int i=1;i<=3;i++){ Titles[i]=newTitles[i]; Texts[i]=newTexts[i]; Expires[i]=newExpires[i]; }
+            Status=changes.Count==0?"No settings were changed.":"Settings saved.";
         } catch(Exception ex){ Status="Save failed: "+ex.Message; }
     }
 </script>
