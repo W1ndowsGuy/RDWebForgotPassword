@@ -563,26 +563,22 @@ function launchRdpResource(rdpContents, url) {
                 <div>
                 <div class="h4 mb-0">Welcome <%= HttpUtility.HtmlEncode(displayName) %>, <%= HttpUtility.HtmlEncode(logonHeader.ToLowerInvariant()) %></div>
                 <% if ((passwordRecoveryEnabled && recoveryEmailVerified) || !String.IsNullOrEmpty(passwordExpiration)) { %>
-                <div class="small text-muted mt-2">
-                    <div class="d-flex flex-wrap gap-3">
-                        <% if (passwordRecoveryEnabled && recoveryEmailVerified) { %>
-                        <span>Recovery email, <%= HttpUtility.HtmlEncode(recoveryEmail) %></span>
-                        <% } %>
-                        <% if (!String.IsNullOrEmpty(passwordExpiration)) { %>
-                        <span><%= HttpUtility.HtmlEncode(passwordExpiration.Replace(" Click here to reset now.", "")) %></span>
-                        <% } %>
-                    </div>
-                    <div class="d-flex flex-wrap gap-3 mt-1">
-                        <% if (passwordRecoveryEnabled && recoveryEmailVerified) { %>
-                        <form method="post" action="default.aspx" class="d-inline">
+                <div class="small text-muted mt-2 d-flex flex-wrap gap-4">
+                    <% if (passwordRecoveryEnabled && recoveryEmailVerified) { %>
+                    <div>
+                        <div>Recovery email, <%= HttpUtility.HtmlEncode(recoveryEmail) %></div>
+                        <form method="post" action="default.aspx" class="d-block mt-1">
                             <input type="hidden" name="recoveryAction" value="change-email" />
                             <button type="submit" class="border-0 bg-transparent text-primary p-0" style="font-size:0.75rem; text-decoration:underline;">Change recovery email</button>
                         </form>
-                        <% } %>
-                        <% if (!String.IsNullOrEmpty(passwordExpiration)) { %>
-                        <a href="password.aspx" class="<%= passwordDaysRemaining >= 0 && passwordDaysRemaining < 5 ? "text-danger fw-bold" : "text-primary" %>" style="font-size:0.75rem;">Change password</a>
-                        <% } %>
                     </div>
+                    <% } %>
+                    <% if (!String.IsNullOrEmpty(passwordExpiration)) { %>
+                    <div>
+                        <div><%= HttpUtility.HtmlEncode(passwordExpiration.Replace(" Click here to reset now.", "")) %></div>
+                        <a href="password.aspx" class="<%= passwordDaysRemaining >= 0 && passwordDaysRemaining < 5 ? "text-danger fw-bold" : "text-primary" %> d-block mt-1" style="font-size:0.75rem;">Change password</a>
+                    </div>
+                    <% } %>
                 </div>
                 <% } %>
                 </div>
