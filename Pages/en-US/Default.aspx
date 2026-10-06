@@ -572,8 +572,9 @@ function launchRdpResource(rdpContents, url) {
                 </div>
                 <% } %>
                 <% if (!String.IsNullOrEmpty(passwordExpiration)) { %>
-                <div class="small">
-                    <a href="password.aspx" class="<%= passwordDaysRemaining >= 0 && passwordDaysRemaining < 5 ? "text-danger fw-bold" : "text-primary" %>"><%= HttpUtility.HtmlEncode(passwordExpiration.Replace(" Click here to reset now.", "")) %></a>
+                <div class="small mt-1">
+                    <div><%= HttpUtility.HtmlEncode(passwordExpiration.Replace(" Click here to reset now.", "")) %></div>
+                    <a href="password.aspx" class="<%= passwordDaysRemaining >= 0 && passwordDaysRemaining < 5 ? "text-danger fw-bold" : "text-primary" %>" style="font-size:0.75rem;">Change password</a>
                 </div>
                 <% } %>
                 </div>
