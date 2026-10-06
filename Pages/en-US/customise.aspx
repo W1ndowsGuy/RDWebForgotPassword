@@ -15,6 +15,11 @@
     public string CarouselColour = "#2d1450";
     public string EnvironmentName = "";
     public int PasswordExpiryDays = 30;
+    public bool PasswordRecoveryEnabled = false;
+    public string SmtpServer = "";
+    public int SmtpPort = 25;
+    public string FromAddress = "";
+    public int RecoveryCodeExpiryMinutes = 10;
     public string[] States = { "", "NO EXPIRY", "NO EXPIRY", "NO EXPIRY" };
 
     protected void Page_Load(object sender, EventArgs e)
@@ -91,6 +96,14 @@
             XDocument d=XDocument.Load(ConfigPath());
             XElement env=d.Root.Element("environmentName"); if(env!=null) EnvironmentName=env.Value;
             XElement pwd=d.Root.Element("passwordExpiryDays"); int pd; if(pwd!=null&&Int32.TryParse(pwd.Value,out pd)&&pd>0) PasswordExpiryDays=pd;
+            XElement recovery=d.Root.Element("passwordRecovery");
+            if(recovery!=null) {
+                bool re; XElement enabled=recovery.Element("enabled"); if(enabled!=null&&Boolean.TryParse(enabled.Value,out re)) PasswordRecoveryEnabled=re;
+                XElement smtp=recovery.Element("smtpServer"); if(smtp!=null) SmtpServer=smtp.Value.Trim();
+                int sp; XElement port=recovery.Element("smtpPort"); if(port!=null&&Int32.TryParse(port.Value,out sp)&&sp>=1&&sp<=65535) SmtpPort=sp;
+                XElement from=recovery.Element("fromAddress"); if(from!=null) FromAddress=from.Value.Trim();
+                int ce; XElement expiry=recovery.Element("codeExpiryMinutes"); if(expiry!=null&&Int32.TryParse(expiry.Value,out ce)&&ce>=1&&ce<=60) RecoveryCodeExpiryMinutes=ce;
+            }
             XElement colour=d.Root.Element("colour");
             if(colour!=null&&!String.IsNullOrWhiteSpace(colour.Value)) {
                 string cv=colour.Value.Trim();
@@ -111,10 +124,12 @@
         try {
             LoadConfig();
             string oldEnv=EnvironmentName, oldColour=CarouselColour; int oldPwd=PasswordExpiryDays;
+            bool oldRecoveryEnabled=PasswordRecoveryEnabled; string oldSmtpServer=SmtpServer, oldFromAddress=FromAddress; int oldSmtpPort=SmtpPort, oldCodeExpiry=RecoveryCodeExpiryMinutes;
             string[] oldTitles=(string[])Titles.Clone(), oldTexts=(string[])Texts.Clone(), oldExpires=(string[])Expires.Clone();
             if(item=="environment") EnvironmentName="";
             else if(item=="password") PasswordExpiryDays=30;
             else if(item=="colour") CarouselColour="#2d1450";
+            else if(item=="recovery") { PasswordRecoveryEnabled=false; SmtpServer=""; SmtpPort=25; FromAddress=""; RecoveryCodeExpiryMinutes=10; }
             else if(item.StartsWith("slide")) {
                 int i; if(!Int32.TryParse(item.Substring(5),out i)||i<1||i>3) throw new Exception("Invalid slide.");
                 string[] dt={ "", "Maintenence Outage", "HELP", "Security" };
@@ -122,13 +137,18 @@
                 Titles[i]=dt[i]; Texts[i]=dm[i]; Expires[i]="";
             } else throw new Exception("Unknown setting.");
 
-            XDocument d=new XDocument(new XElement("carousel",new XElement("environmentName",EnvironmentName),new XElement("passwordExpiryDays",PasswordExpiryDays),new XElement("colour",CarouselColour)));
+            XDocument d=new XDocument(new XElement("carousel",new XElement("environmentName",EnvironmentName),new XElement("passwordExpiryDays",PasswordExpiryDays),new XElement("colour",CarouselColour),new XElement("passwordRecovery",new XElement("enabled",PasswordRecoveryEnabled.ToString().ToLowerInvariant()),new XElement("smtpServer",SmtpServer),new XElement("smtpPort",SmtpPort),new XElement("fromAddress",FromAddress),new XElement("codeExpiryMinutes",RecoveryCodeExpiryMinutes))));
             for(int i=1;i<=3;i++) d.Root.Add(new XElement("slide",new XAttribute("id",i),new XAttribute("expires",Expires[i]??""),new XElement("title",Titles[i]),new XElement("text",Texts[i])));
             string path=ConfigPath(); Directory.CreateDirectory(Path.GetDirectoryName(path)); d.Save(path);
             var changes=new System.Collections.Generic.List<XElement>();
             if(oldEnv!=EnvironmentName) changes.Add(Change("Environment name",oldEnv,EnvironmentName,""));
             if(oldPwd!=PasswordExpiryDays) changes.Add(Change("Password expiry days",oldPwd.ToString(),PasswordExpiryDays.ToString(),""));
             if(oldColour!=CarouselColour) changes.Add(Change("Carousel colour",oldColour,CarouselColour,""));
+            if(oldRecoveryEnabled!=PasswordRecoveryEnabled) changes.Add(Change("Password recovery enabled",oldRecoveryEnabled.ToString(),PasswordRecoveryEnabled.ToString(),""));
+            if(oldSmtpServer!=SmtpServer) changes.Add(Change("SMTP server",oldSmtpServer,SmtpServer,""));
+            if(oldSmtpPort!=SmtpPort) changes.Add(Change("SMTP port",oldSmtpPort.ToString(),SmtpPort.ToString(),""));
+            if(oldFromAddress!=FromAddress) changes.Add(Change("Recovery from address",oldFromAddress,FromAddress,""));
+            if(oldCodeExpiry!=RecoveryCodeExpiryMinutes) changes.Add(Change("Recovery code expiry minutes",oldCodeExpiry.ToString(),RecoveryCodeExpiryMinutes.ToString(),""));
             for(int i=1;i<=3;i++){
                 if(oldTitles[i]!=Titles[i]) changes.Add(Change("Slide "+i+" title",oldTitles[i],Titles[i],""));
                 if(oldTexts[i]!=Texts[i]) changes.Add(Change("Slide "+i+" message",oldTexts[i],Texts[i],Texts[i]));
@@ -146,10 +166,17 @@
             string oldEnv=EnvironmentName, oldColour=CarouselColour; int oldPwd=PasswordExpiryDays;
             string[] oldTitles=(string[])Titles.Clone(), oldTexts=(string[])Texts.Clone(), oldExpires=(string[])Expires.Clone();
             string colour=Request.Form["carouselColour"]??"#2d1450";
+            bool recoveryEnabled=(Request.Form["passwordRecoveryEnabled"]=="on");
+            string smtpServer=(Request.Form["smtpServer"]??"").Trim();
+            string fromAddress=(Request.Form["fromAddress"]??"").Trim();
+            int smtpPort; if(!Int32.TryParse(Request.Form["smtpPort"]??"25",out smtpPort)||smtpPort<1||smtpPort>65535) throw new Exception("SMTP port must be between 1 and 65535.");
+            int codeExpiry; if(!Int32.TryParse(Request.Form["recoveryCodeExpiryMinutes"]??"10",out codeExpiry)||codeExpiry<1||codeExpiry>60) throw new Exception("Recovery code expiry must be between 1 and 60 minutes.");
+            if(recoveryEnabled && String.IsNullOrWhiteSpace(smtpServer)) throw new Exception("SMTP server is required when password recovery is enabled.");
+            if(recoveryEnabled && (String.IsNullOrWhiteSpace(fromAddress)||!fromAddress.Contains("@"))) throw new Exception("A valid From address is required when password recovery is enabled.");
             string environment=(Request.Form["environmentName"]??"").Trim();
             int passwordDays; if(!Int32.TryParse(Request.Form["passwordExpiryDays"]??"30",out passwordDays)||passwordDays<1||passwordDays>3650) throw new Exception("Password expiry days must be between 1 and 3650.");
             if(!System.Text.RegularExpressions.Regex.IsMatch(colour, "^#[0-9A-Fa-f]{6}$")) throw new Exception("Carousel colour must be a valid colour.");
-            XDocument d=new XDocument(new XElement("carousel",new XElement("environmentName",environment),new XElement("passwordExpiryDays",passwordDays),new XElement("colour",colour)));
+            XDocument d=new XDocument(new XElement("carousel",new XElement("environmentName",environment),new XElement("passwordExpiryDays",passwordDays),new XElement("colour",colour),new XElement("passwordRecovery",new XElement("enabled",recoveryEnabled.ToString().ToLowerInvariant()),new XElement("smtpServer",smtpServer),new XElement("smtpPort",smtpPort),new XElement("fromAddress",fromAddress),new XElement("codeExpiryMinutes",codeExpiry))));
             string[] newTitles={ "", "", "", "" }, newTexts={ "", "", "", "" }, newExpires={ "", "", "", "" };
             for(int i=1;i<=3;i++){
                 string title=Request.Form["title"+i]??"", text=Request.Form["text"+i]??"", raw=Request.Form["expires"+i]??"", expiry="";
@@ -162,6 +189,11 @@
             if(oldEnv!=environment) changes.Add(Change("Environment name",oldEnv,environment,""));
             if(oldPwd!=passwordDays) changes.Add(Change("Password expiry days",oldPwd.ToString(),passwordDays.ToString(),""));
             if(oldColour!=colour) changes.Add(Change("Carousel colour",oldColour,colour,""));
+            if(oldRecoveryEnabled!=recoveryEnabled) changes.Add(Change("Password recovery enabled",oldRecoveryEnabled.ToString(),recoveryEnabled.ToString(),""));
+            if(oldSmtpServer!=smtpServer) changes.Add(Change("SMTP server",oldSmtpServer,smtpServer,""));
+            if(oldSmtpPort!=smtpPort) changes.Add(Change("SMTP port",oldSmtpPort.ToString(),smtpPort.ToString(),""));
+            if(oldFromAddress!=fromAddress) changes.Add(Change("Recovery from address",oldFromAddress,fromAddress,""));
+            if(oldCodeExpiry!=codeExpiry) changes.Add(Change("Recovery code expiry minutes",oldCodeExpiry.ToString(),codeExpiry.ToString(),""));
             for(int i=1;i<=3;i++){
                 if(oldTitles[i]!=newTitles[i]) changes.Add(Change("Slide "+i+" title",oldTitles[i],newTitles[i],""));
                 if(oldTexts[i]!=newTexts[i]) changes.Add(Change("Slide "+i+" message",oldTexts[i],newTexts[i],newTexts[i]));
@@ -181,6 +213,12 @@
 <div class="card mb-3"><div class="card-body"><h2 class="h5">Environment settings</h2>
 <div class="mb-3"><label class="form-label" for="environmentName">Display name</label><div class="d-flex gap-2 align-items-start"><input class="form-control" style="max-width:420px" id="environmentName" name="environmentName" value="<%=HttpUtility.HtmlAttributeEncode(EnvironmentName)%>" maxlength="100"/><button class="btn btn-outline-secondary text-nowrap" type="submit" name="action" value="reset-environment">Reset to default</button></div><div class="form-text">Optional. Default uses the automatically detected domain name.</div></div>
 <div><label class="form-label" for="passwordExpiryDays">Password expiry days</label><div class="d-flex gap-2 align-items-start"><input class="form-control" style="max-width:160px" type="number" min="1" max="3650" id="passwordExpiryDays" name="passwordExpiryDays" value="<%=PasswordExpiryDays%>"/><button class="btn btn-outline-secondary text-nowrap" type="submit" name="action" value="reset-password">Reset to default</button></div><div class="form-text">Used to calculate the password expiry date shown to users. Default: 30 days.</div></div>
+</div></div>
+<div class="card mb-3"><div class="card-body"><div class="d-flex justify-content-between align-items-center"><h2 class="h5">Password recovery</h2><button class="btn btn-outline-secondary text-nowrap" type="submit" name="action" value="reset-recovery">Reset to default</button></div>
+<div class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" role="switch" id="passwordRecoveryEnabled" name="passwordRecoveryEnabled" <%=PasswordRecoveryEnabled ? "checked" : ""%>><label class="form-check-label" for="passwordRecoveryEnabled">Enable password recovery</label></div>
+<div class="row g-3"><div class="col-md-8"><label class="form-label" for="smtpServer">SMTP relay</label><input class="form-control" id="smtpServer" name="smtpServer" value="<%=HttpUtility.HtmlAttributeEncode(SmtpServer)%>" maxlength="255" placeholder="mailrelay.example.local"/></div><div class="col-md-4"><label class="form-label" for="smtpPort">SMTP port</label><input class="form-control" type="number" min="1" max="65535" id="smtpPort" name="smtpPort" value="<%=SmtpPort%>"/></div>
+<div class="col-md-8"><label class="form-label" for="fromAddress">From address</label><input class="form-control" type="email" id="fromAddress" name="fromAddress" value="<%=HttpUtility.HtmlAttributeEncode(FromAddress)%>" maxlength="254" placeholder="rdweb@example.org"/></div><div class="col-md-4"><label class="form-label" for="recoveryCodeExpiryMinutes">Code expiry (minutes)</label><input class="form-control" type="number" min="1" max="60" id="recoveryCodeExpiryMinutes" name="recoveryCodeExpiryMinutes" value="<%=RecoveryCodeExpiryMinutes%>"/></div></div>
+<div class="form-text mt-3">Stage 1 configuration only. Enabling this setting does not yet expose password reset or send email. SMTP credentials and VIP/RADIUS secrets are not stored here.</div>
 </div></div>
 <div class="card mb-3"><div class="card-body"><h2 class="h5">Carousel colour</h2>
 <div class="d-flex align-items-center gap-3"><input type="color" class="form-control form-control-color" id="carouselColour" name="carouselColour" value="<%=HttpUtility.HtmlAttributeEncode(CarouselColour)%>" title="Choose carousel colour"/><button class="btn btn-outline-secondary text-nowrap" type="submit" name="action" value="reset-colour">Reset to default</button><span class="text-muted">Choose the carousel colour for this environment.</span></div>
