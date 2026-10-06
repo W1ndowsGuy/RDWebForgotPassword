@@ -12,6 +12,9 @@
 <%@ Import Namespace="System.DirectoryServices" %>
 <%@ Import Namespace="System.DirectoryServices.ActiveDirectory" %>
 <%@ Import Namespace="System.Net.Mail" %>
+<%@ Import Namespace="System.IO" %>
+<%@ Import Namespace="System.IO.Pipes" %>
+<%@ Import Namespace="System.Text" %>
 <%@ Import Namespace="Microsoft.TerminalServices.Publishing.Portal" %>
 <%@ Import Namespace="Microsoft.TerminalServices.Publishing.Portal.FormAuthentication" %>
 
@@ -301,6 +304,29 @@
         } catch (Exception ex) { recoveryStatus = "Could not send verification email: " + ex.Message; }
     }
 
+    private string SaveRecoveryEmailViaHelper(string samAccountName, string email)
+    {
+        using (NamedPipeClientStream pipe = new NamedPipeClientStream(
+            ".", "RDWebRecoveryHelper", PipeDirection.InOut, PipeOptions.None))
+        {
+            pipe.Connect(3000);
+            using (StreamWriter writer = new StreamWriter(pipe, new UTF8Encoding(false), 4096, true))
+            using (StreamReader reader = new StreamReader(pipe, Encoding.UTF8, false, 4096, true))
+            {
+                writer.AutoFlush = true;
+                writer.WriteLine("SETMAIL|" + samAccountName + "|" + email);
+                string response = reader.ReadLine();
+                if (String.IsNullOrEmpty(response))
+                    throw new Exception("The password recovery helper returned no response.");
+                if (!response.StartsWith("OK|", StringComparison.Ordinal))
+                    throw new Exception(response.StartsWith("ERROR|", StringComparison.Ordinal)
+                        ? response.Substring(6)
+                        : "The password recovery helper returned an invalid response.");
+                return response.Substring(3);
+            }
+        }
+    }
+
     private void VerifyRecoveryEmailCode()
     {
         try {
@@ -315,34 +341,7 @@
             if (attempts > 5) throw new Exception("Too many incorrect attempts. Request a new code.");
             if (!String.Equals(supplied, expected, StringComparison.Ordinal)) throw new Exception("The verification code is incorrect.");
 
-            SearchResult user = FindCurrentAdUser("distinguishedName");
-            if (user == null || user.Properties["distinguishedName"].Count == 0) throw new Exception("Your Active Directory account could not be located.");
-            string dn = user.Properties["distinguishedName"][0].ToString();
-
-            // TEMP DIAGNOSTIC: pin the write to the same DC used for the LDAP bind
-            // so DC selection/referrals are removed from the test.
-            string writeServer = Domain.GetCurrentDomain().FindDomainController().Name;
-            string writePath = "LDAP://" + writeServer + "/" + dn;
-            try {
-                using (DirectoryEntry account = new DirectoryEntry(writePath)) {
-                    // Force the bind before attempting the property write.
-                    object nativeObject = account.NativeObject;
-                    account.Properties["mail"].Value = pendingEmail;
-                    account.CommitChanges();
-                }
-            }
-            catch (Exception writeEx) {
-                int hresult = System.Runtime.InteropServices.Marshal.GetHRForException(writeEx);
-                Exception baseEx = writeEx.GetBaseException();
-                throw new Exception(
-                    "AD mail write failed" +
-                    " | LDAP path: " + writePath +
-                    " | Exception: " + writeEx.GetType().FullName +
-                    " | HRESULT: 0x" + hresult.ToString("X8") +
-                    " | Message: " + writeEx.Message +
-                    " | Base exception: " + (baseEx == null ? "(none)" : baseEx.GetType().FullName + ": " + baseEx.Message),
-                    writeEx);
-            }
+            SaveRecoveryEmailViaHelper(GetSamAccountName(), pendingEmail);
 
             Session.Remove("RDWebRecoveryPendingEmail");
             Session.Remove("RDWebRecoveryCode");
@@ -351,38 +350,9 @@
             recoveryEmail = pendingEmail;
             recoveryEmailVerified = true;
             recoveryStatus = "Recovery email verified and saved.";
-        } catch (Exception ex) {
-            System.Security.Principal.WindowsIdentity wi = System.Security.Principal.WindowsIdentity.GetCurrent();
-            string windowsIdentity = wi == null ? "(none)" : wi.Name;
-            string authenticationType = wi == null ? "(none)" : (wi.AuthenticationType ?? "(none)");
-            string impersonationLevel = wi == null ? "(none)" : wi.ImpersonationLevel.ToString();
-            string threadIdentity = System.Threading.Thread.CurrentPrincipal == null || System.Threading.Thread.CurrentPrincipal.Identity == null
-                ? "(none)"
-                : System.Threading.Thread.CurrentPrincipal.Identity.Name;
-
-            string ldapServer = "(unknown)";
-            string ldapBindResult = "(not tested)";
-            try {
-                string fqdn = Domain.GetCurrentDomain().Name;
-                DomainController dc = Domain.GetCurrentDomain().FindDomainController();
-                ldapServer = dc == null ? fqdn : dc.Name;
-                using (DirectoryEntry bindTest = new DirectoryEntry("LDAP://" + ldapServer + "/RootDSE")) {
-                    object defaultNamingContext = bindTest.Properties["defaultNamingContext"].Value;
-                    ldapBindResult = defaultNamingContext == null
-                        ? "Bind succeeded"
-                        : "Bind succeeded (" + defaultNamingContext.ToString() + ")";
-                }
-            } catch (Exception bindEx) {
-                ldapBindResult = "Bind failed: " + bindEx.Message;
-            }
-
-            recoveryStatus = "Verification failed: " + ex.Message +
-                " | Windows identity: " + windowsIdentity +
-                " | Authentication type: " + authenticationType +
-                " | Impersonation level: " + impersonationLevel +
-                " | ASP.NET identity: " + threadIdentity +
-                " | LDAP server: " + ldapServer +
-                " | LDAP bind: " + ldapBindResult;
+        }
+        catch (Exception ex) {
+            recoveryStatus = "Verification failed: " + ex.Message;
         }
     }
 
