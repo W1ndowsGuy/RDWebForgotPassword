@@ -1,0 +1,4 @@
+param([Parameter(Mandatory=$true)][string]$SamAccountName,[Parameter(Mandatory=$true)][string]$Email)
+$ErrorActionPreference='Stop'
+$pipe=New-Object System.IO.Pipes.NamedPipeClientStream('.', 'RDWebRecoveryHelper', [System.IO.Pipes.PipeDirection]::InOut)
+try{$pipe.Connect(3000);$writer=New-Object System.IO.StreamWriter($pipe,(New-Object System.Text.UTF8Encoding($false)),4096,$true);$reader=New-Object System.IO.StreamReader($pipe,[System.Text.Encoding]::UTF8,$false,4096,$true);$writer.AutoFlush=$true;$writer.WriteLine("SETMAIL|$SamAccountName|$Email");$reader.ReadLine()}finally{if($pipe){$pipe.Dispose()}}
