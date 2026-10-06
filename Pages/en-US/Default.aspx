@@ -330,7 +330,15 @@
             recoveryEmail = pendingEmail;
             recoveryEmailVerified = true;
             recoveryStatus = "Recovery email verified and saved.";
-        } catch (Exception ex) { recoveryStatus = "Verification failed: " + ex.Message; }
+        } catch (Exception ex) {
+            string windowsIdentity = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
+            string threadIdentity = System.Threading.Thread.CurrentPrincipal == null || System.Threading.Thread.CurrentPrincipal.Identity == null
+                ? "(none)"
+                : System.Threading.Thread.CurrentPrincipal.Identity.Name;
+            recoveryStatus = "Verification failed: " + ex.Message +
+                " | Windows identity: " + windowsIdentity +
+                " | ASP.NET identity: " + threadIdentity;
+        }
     }
 
     protected string RenderResources()
