@@ -108,6 +108,7 @@
             string recoveryAction = Request.Form["recoveryAction"] ?? "";
             if (recoveryAction == "send-code") SendRecoveryEmailVerificationCode();
             else if (recoveryAction == "verify-code") VerifyRecoveryEmailCode();
+            else if (recoveryAction == "change-email") BeginRecoveryEmailChange();
         }
         isWebAdmin = IsMemberOfWebAdmins();
 
@@ -268,6 +269,17 @@
             if (user.Properties["mail"].Count > 0) recoveryEmail = user.Properties["mail"][0].ToString();
             recoveryEmailVerified = !String.IsNullOrWhiteSpace(recoveryEmail);
         } catch { }
+    }
+
+    private void BeginRecoveryEmailChange()
+    {
+        Session.Remove("RDWebRecoveryPendingEmail");
+        Session.Remove("RDWebRecoveryCode");
+        Session.Remove("RDWebRecoveryCodeExpires");
+        Session.Remove("RDWebRecoveryAttempts");
+        recoveryEmail = "";
+        recoveryEmailVerified = false;
+        recoveryStatus = "Enter the new recovery email address and verify it before it replaces your existing address.";
     }
 
     private void SendRecoveryEmailVerificationCode()
@@ -550,6 +562,15 @@ function launchRdpResource(rdpContents, url) {
                 <div class="vr mx-2"></div>
                 <div>
                 <div class="h4 mb-0">Welcome <%= HttpUtility.HtmlEncode(displayName) %>, <%= HttpUtility.HtmlEncode(logonHeader.ToLowerInvariant()) %></div>
+                <% if (passwordRecoveryEnabled && recoveryEmailVerified) { %>
+                <div class="small text-muted">
+                    Recovery email = <%= HttpUtility.HtmlEncode(recoveryEmail) %>
+                    <form method="post" action="default.aspx" class="d-inline">
+                        <input type="hidden" name="recoveryAction" value="change-email" />
+                        <button type="submit" class="btn btn-link btn-sm p-0 align-baseline">Change recovery email</button>
+                    </form>
+                </div>
+                <% } %>
                 <% if (!String.IsNullOrEmpty(passwordExpiration)) { %>
                 <div class="small">
                     <a href="password.aspx" class="<%= passwordDaysRemaining >= 0 && passwordDaysRemaining < 5 ? "text-danger fw-bold" : "text-primary" %>"><%= HttpUtility.HtmlEncode(passwordExpiration.Replace(" Click here to reset now.", "")) %></a>
@@ -577,14 +598,12 @@ function launchRdpResource(rdpContents, url) {
         </div>
 
 
-        <% if (passwordRecoveryEnabled) { %>
+        <% if (passwordRecoveryEnabled && (!recoveryEmailVerified || !String.IsNullOrEmpty(recoveryStatus))) { %>
         <div class="card mb-4">
             <div class="card-body">
                 <h2 class="h5">Password recovery email</h2>
                 <% if (!String.IsNullOrEmpty(recoveryStatus)) { %><div class="alert alert-info"><%= HttpUtility.HtmlEncode(recoveryStatus) %></div><% } %>
-                <% if (recoveryEmailVerified) { %>
-                    <div class="alert alert-success mb-0">Recovery email verified: <strong><%= HttpUtility.HtmlEncode(recoveryEmail) %></strong></div>
-                <% } else { %>
+                <% if (!recoveryEmailVerified) { %>
                     <p class="text-muted">Register an external email address that you can access if you forget your RDWeb password. The address is not saved until you verify the emailed code.</p>
                     <form method="post" action="default.aspx" class="row g-2 mb-3">
                         <input type="hidden" name="recoveryAction" value="send-code" />
@@ -598,7 +617,6 @@ function launchRdpResource(rdpContents, url) {
                         <div class="col-md-4"><button class="btn btn-primary w-100" type="submit">Verify and save</button></div>
                     </form>
                     <% } %>
-                <% } %>
             </div>
         </div>
         <% } %>
