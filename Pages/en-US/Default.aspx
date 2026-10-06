@@ -563,11 +563,11 @@ function launchRdpResource(rdpContents, url) {
                 <div>
                 <div class="h4 mb-0">Welcome <%= HttpUtility.HtmlEncode(displayName) %>, <%= HttpUtility.HtmlEncode(logonHeader.ToLowerInvariant()) %></div>
                 <% if (passwordRecoveryEnabled && recoveryEmailVerified) { %>
-                <div class="small text-muted">
-                    Recovery email = <%= HttpUtility.HtmlEncode(recoveryEmail) %>
-                    <form method="post" action="default.aspx" class="d-inline">
+                <div class="small text-muted mt-2">
+                    Recovery email, <%= HttpUtility.HtmlEncode(recoveryEmail) %>
+                    <form method="post" action="default.aspx" class="d-inline ms-1">
                         <input type="hidden" name="recoveryAction" value="change-email" />
-                        <button type="submit" class="btn btn-link btn-sm p-0 align-baseline">Change recovery email</button>
+                        <button type="submit" class="btn btn-link p-0 align-baseline" style="font-size:0.75rem;">Change recovery email</button>
                     </form>
                 </div>
                 <% } %>
