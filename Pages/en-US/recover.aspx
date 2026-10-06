@@ -24,14 +24,19 @@
             return;
         }
 
-        object expiryObject = Session["RDWebRecoveryCandidateExpires"];
-        if (expiryObject is DateTime && DateTime.UtcNow <= (DateTime)expiryObject &&
-            Session["RDWebRecoveryCandidateSam"] != null &&
-            Session["RDWebRecoveryCandidateEmail"] != null)
-            identityMatched = true;
-
-        if (Request.HttpMethod == "POST")
+        // Always start a fresh recovery attempt on a normal GET.
+        // Recovery state must not survive returning to this page from an earlier test.
+        if (Request.HttpMethod != "POST")
+        {
+            Session.Remove("RDWebRecoveryCandidateSam");
+            Session.Remove("RDWebRecoveryCandidateEmail");
+            Session.Remove("RDWebRecoveryCandidateExpires");
+            identityMatched = false;
+        }
+        else
+        {
             ValidateRegisteredRecoveryEmail();
+        }
     }
 
     private void LoadConfiguration()
