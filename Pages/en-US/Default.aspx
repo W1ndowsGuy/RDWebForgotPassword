@@ -279,7 +279,7 @@
         Session.Remove("RDWebRecoveryAttempts");
         recoveryEmail = "";
         recoveryEmailVerified = false;
-        recoveryStatus = "Enter the new recovery email address and verify it before it replaces your existing address.";
+        recoveryStatus = "Enter the new Recovery E-Mail address and verify it before it replaces your existing address.";
     }
 
     private void SendRecoveryEmailVerificationCode()
@@ -288,7 +288,7 @@
             string address = (Request.Form["recoveryEmail"] ?? "").Trim();
             MailAddress parsed = new MailAddress(address);
             if (!parsed.Address.Equals(address, StringComparison.OrdinalIgnoreCase)) throw new Exception("Enter a valid email address.");
-            if (String.IsNullOrWhiteSpace(recoverySmtpServer) || String.IsNullOrWhiteSpace(recoveryFromAddress)) throw new Exception("Password recovery email has not been configured by an administrator.");
+            if (String.IsNullOrWhiteSpace(recoverySmtpServer) || String.IsNullOrWhiteSpace(recoveryFromAddress)) throw new Exception("Password Recovery E-Mail has not been configured by an administrator.");
 
             byte[] bytes = new byte[4];
             using (System.Security.Cryptography.RandomNumberGenerator rng = System.Security.Cryptography.RandomNumberGenerator.Create()) rng.GetBytes(bytes);
@@ -303,8 +303,8 @@
             using (MailMessage message = new MailMessage()) {
                 message.From = new MailAddress(recoveryFromAddress);
                 message.To.Add(parsed);
-                message.Subject = "RDWeb recovery email verification";
-                message.Body = "Your RDWeb recovery email verification code is: " + code + "\r\n\r\nThis code expires in " + recoveryCodeExpiryMinutes + " minutes. If you did not request this code, you can ignore this email.";
+                message.Subject = "RDWeb Recovery E-Mail verification";
+                message.Body = "Your RDWeb Recovery E-Mail verification code is: " + code + "\r\n\r\nThis code expires in " + recoveryCodeExpiryMinutes + " minutes. If you did not request this code, you can ignore this email.";
                 using (SmtpClient client = new SmtpClient(recoverySmtpServer, recoverySmtpPort)) {
                     client.DeliveryMethod = SmtpDeliveryMethod.Network;
                     client.UseDefaultCredentials = false;
@@ -315,7 +315,7 @@
             // Keep the page in enrolment/change mode so the verification-code form is rendered.
             recoveryEmail = address;
             recoveryEmailVerified = false;
-            recoveryStatus = "A verification code has been sent. Enter it below to verify this recovery email.";
+            recoveryStatus = "A verification code has been sent. Enter it below to verify this Recovery E-Mail.";
         } catch (Exception ex) { recoveryStatus = "Could not send verification email: " + ex.Message; }
     }
 
@@ -569,10 +569,10 @@ function launchRdpResource(rdpContents, url) {
                 <div class="small text-muted mt-2 d-flex flex-wrap gap-4">
                     <% if (passwordRecoveryEnabled && recoveryEmailVerified) { %>
                     <div>
-                        <div>Recovery email, <%= HttpUtility.HtmlEncode(recoveryEmail) %></div>
+                        <div>Recovery E-Mail, <%= HttpUtility.HtmlEncode(recoveryEmail) %></div>
                         <form method="post" action="default.aspx" class="d-block mt-1">
                             <input type="hidden" name="recoveryAction" value="change-email" />
-                            <button type="submit" class="border-0 bg-transparent text-primary p-0" style="font-size:0.75rem; text-decoration:underline;">Change recovery email</button>
+                            <button type="submit" class="border-0 bg-transparent text-primary p-0" style="font-size:0.75rem; text-decoration:underline;">Change Recovery E-Mail</button>
                         </form>
                     </div>
                     <% } %>
@@ -609,7 +609,7 @@ function launchRdpResource(rdpContents, url) {
         <% if (passwordRecoveryEnabled && (!recoveryEmailVerified || !String.IsNullOrEmpty(recoveryStatus))) { %>
         <div class="card mb-4">
             <div class="card-body">
-                <h2 class="h5">Password recovery email</h2>
+                <h2 class="h5">Password Recovery E-Mail</h2>
                 <% if (!String.IsNullOrEmpty(recoveryStatus)) { %><div class="alert alert-info"><%= HttpUtility.HtmlEncode(recoveryStatus) %></div><% } %>
                 <% if (!recoveryEmailVerified) { %>
                     <p class="text-muted">Register an external email address that you can access if you forget your RDWeb password. The address is not saved until you verify the emailed code.</p>
