@@ -115,7 +115,10 @@
                         Session["RDWebRecoveryCandidateSam"] = sam;
                         Session["RDWebRecoveryCandidateEmail"] = email;
                         Session["RDWebRecoveryCandidateExpires"] = DateTime.UtcNow.AddMinutes(10);
-                        identityMatched = true;
+                        // Hand off to the dedicated URL protected by the existing Symantec VIP IIS plugin.
+                        Response.Redirect("recovervip.aspx", false);
+                        Context.ApplicationInstance.CompleteRequest();
+                        return;
                     }
                     else
                     {
@@ -133,9 +136,7 @@
             Session.Remove("RDWebRecoveryCandidateExpires");
         }
 
-        statusMessage = identityMatched
-            ? "Recovery details accepted. Enter your VIP Security Code to continue."
-            : genericResponse;
+        statusMessage = genericResponse;
     }
 </script>
 <!doctype html>
@@ -173,21 +174,13 @@ body{min-height:100vh;background:url('../images/EngOne.jpg') center/cover fixed 
 <% if (!String.IsNullOrEmpty(statusMessage)) { %>
 <div class="alert alert-info"><%=HttpUtility.HtmlEncode(statusMessage)%></div>
 <% } %>
-<% if (recoveryEnabled && !identityMatched) { %>
+<% if (recoveryEnabled) { %>
 <form method="post" action="recover.aspx" autocomplete="off">
 <div class="mb-3"><label class="form-label" for="username">Username</label><input class="form-control form-control-lg" id="username" name="username" autocomplete="off" required maxlength="256"/></div>
 <div class="mb-4"><label class="form-label" for="recoveryEmail">Recovery E-Mail</label><input class="form-control form-control-lg" type="email" id="recoveryEmail" name="recoveryEmail" autocomplete="off" required maxlength="254"/></div>
 <button type="submit" class="btn btn-secondary btn-lg w-100">Continue</button>
 </form>
-<% } else if (recoveryEnabled && identityMatched) { %>
-<div class="mb-3">
-<label class="form-label" for="vipSecurityCode">VIP Security Code</label>
-<input class="form-control form-control-lg" id="vipSecurityCode" name="vipSecurityCode" inputmode="numeric" autocomplete="one-time-code" disabled />
-</div>
-<button type="button" class="btn btn-secondary btn-lg w-100" disabled>Verify Security Code</button>
-<p class="small mt-3 mb-0">VIP verification is the next security stage and is not enabled until the dedicated server-side VIP/RADIUS connection is configured.</p>
-<% } %>
-<div class="text-center mt-3"><a class="small text-white" href="login.aspx">Back to login</a></div>
+<% } %><div class="text-center mt-3"><a class="small text-white" href="login.aspx">Back to login</a></div>
 </div></div>
 </div>
 </div>
