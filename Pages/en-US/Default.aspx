@@ -318,9 +318,30 @@
             SearchResult user = FindCurrentAdUser("distinguishedName");
             if (user == null || user.Properties["distinguishedName"].Count == 0) throw new Exception("Your Active Directory account could not be located.");
             string dn = user.Properties["distinguishedName"][0].ToString();
-            using (DirectoryEntry account = new DirectoryEntry("LDAP://" + dn)) {
-                account.Properties["mail"].Value = pendingEmail;
-                account.CommitChanges();
+
+            // TEMP DIAGNOSTIC: pin the write to the same DC used for the LDAP bind
+            // so DC selection/referrals are removed from the test.
+            string writeServer = Domain.GetCurrentDomain().FindDomainController().Name;
+            string writePath = "LDAP://" + writeServer + "/" + dn;
+            try {
+                using (DirectoryEntry account = new DirectoryEntry(writePath)) {
+                    // Force the bind before attempting the property write.
+                    object nativeObject = account.NativeObject;
+                    account.Properties["mail"].Value = pendingEmail;
+                    account.CommitChanges();
+                }
+            }
+            catch (Exception writeEx) {
+                int hresult = System.Runtime.InteropServices.Marshal.GetHRForException(writeEx);
+                Exception baseEx = writeEx.GetBaseException();
+                throw new Exception(
+                    "AD mail write failed" +
+                    " | LDAP path: " + writePath +
+                    " | Exception: " + writeEx.GetType().FullName +
+                    " | HRESULT: 0x" + hresult.ToString("X8") +
+                    " | Message: " + writeEx.Message +
+                    " | Base exception: " + (baseEx == null ? "(none)" : baseEx.GetType().FullName + ": " + baseEx.Message),
+                    writeEx);
             }
 
             Session.Remove("RDWebRecoveryPendingEmail");
