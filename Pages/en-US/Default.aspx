@@ -617,6 +617,7 @@ function launchRdpResource(rdpContents, url) {
                         <div class="col-md-4"><button class="btn btn-primary w-100" type="submit">Verify and save</button></div>
                     </form>
                     <% } %>
+                <% } %>
             </div>
         </div>
         <% } %>
