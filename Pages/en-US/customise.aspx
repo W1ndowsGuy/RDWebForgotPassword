@@ -164,6 +164,7 @@
         try {
             LoadConfig();
             string oldEnv=EnvironmentName, oldColour=CarouselColour; int oldPwd=PasswordExpiryDays;
+            bool oldRecoveryEnabled=PasswordRecoveryEnabled; string oldSmtpServer=SmtpServer, oldFromAddress=FromAddress; int oldSmtpPort=SmtpPort, oldCodeExpiry=RecoveryCodeExpiryMinutes;
             string[] oldTitles=(string[])Titles.Clone(), oldTexts=(string[])Texts.Clone(), oldExpires=(string[])Expires.Clone();
             string colour=Request.Form["carouselColour"]??"#2d1450";
             bool recoveryEnabled=(Request.Form["passwordRecoveryEnabled"]=="on");
