@@ -260,12 +260,10 @@
     {
         if (!passwordRecoveryEnabled) return;
         try {
-            SearchResult user = FindCurrentAdUser("mail", "extensionAttribute15");
+            SearchResult user = FindCurrentAdUser("mail");
             if (user == null) return;
             if (user.Properties["mail"].Count > 0) recoveryEmail = user.Properties["mail"][0].ToString();
-            recoveryEmailVerified = user.Properties["extensionAttribute15"].Count > 0 &&
-                user.Properties["extensionAttribute15"][0].ToString().Equals("RDWebRecoveryVerified", StringComparison.OrdinalIgnoreCase) &&
-                !String.IsNullOrWhiteSpace(recoveryEmail);
+            recoveryEmailVerified = !String.IsNullOrWhiteSpace(recoveryEmail);
         } catch { }
     }
 
@@ -322,7 +320,6 @@
             string dn = user.Properties["distinguishedName"][0].ToString();
             using (DirectoryEntry account = new DirectoryEntry("LDAP://" + dn)) {
                 account.Properties["mail"].Value = pendingEmail;
-                account.Properties["extensionAttribute15"].Value = "RDWebRecoveryVerified";
                 account.CommitChanges();
             }
 
