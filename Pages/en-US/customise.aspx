@@ -4,6 +4,7 @@
 <%@ Import Namespace="System.Linq" %>
 <%@ Import Namespace="System.Xml.Linq" %>
 <%@ Import Namespace="System.IO" %>
+<%@ Import Namespace="System.Net.Mail" %>
 <%@ Import Namespace="System.DirectoryServices" %>
 <%@ Import Namespace="System.DirectoryServices.ActiveDirectory" %>
 <%@ Import Namespace="Microsoft.TerminalServices.Publishing.Portal.FormAuthentication" %>
@@ -28,7 +29,8 @@
         if (!IsWebAdmin()) { Response.StatusCode = 403; Response.End(); return; }
         if (Request.HttpMethod == "POST") {
             string action=Request.Form["action"]??"save";
-            if(action.StartsWith("reset-")) ResetOne(action.Substring(6));
+            if(action=="test-email") SendTestEmail();
+            else if(action.StartsWith("reset-")) ResetOne(action.Substring(6));
             else Save();
         }
         LoadConfig();
@@ -159,6 +161,32 @@
         } catch(Exception ex){ Status="Reset failed: "+ex.Message; }
     }
 
+    void SendTestEmail()
+    {
+        try {
+            string smtpServer=(Request.Form["smtpServer"]??"").Trim();
+            string fromAddress=(Request.Form["fromAddress"]??"").Trim();
+            string testAddress=(Request.Form["testEmailAddress"]??"").Trim();
+            int smtpPort;
+            if(String.IsNullOrWhiteSpace(smtpServer)) throw new Exception("Enter an SMTP relay first.");
+            if(!Int32.TryParse(Request.Form["smtpPort"]??"25",out smtpPort)||smtpPort<1||smtpPort>65535) throw new Exception("SMTP port must be between 1 and 65535.");
+            if(String.IsNullOrWhiteSpace(fromAddress)||!fromAddress.Contains("@")) throw new Exception("Enter a valid From address first.");
+            if(String.IsNullOrWhiteSpace(testAddress)||!testAddress.Contains("@")) throw new Exception("Enter a valid test email address.");
+            using(MailMessage message=new MailMessage()) {
+                message.From=new MailAddress(fromAddress);
+                message.To.Add(new MailAddress(testAddress));
+                message.Subject="RDWeb password recovery test";
+                message.Body="This is a test email from the RDWeb password recovery configuration on "+Environment.MachineName+".\r\n\r\nIf you received this message, the configured SMTP relay accepted the RDWeb test message.";
+                using(SmtpClient client=new SmtpClient(smtpServer,smtpPort)) {
+                    client.DeliveryMethod=SmtpDeliveryMethod.Network;
+                    client.UseDefaultCredentials=false;
+                    client.Send(message);
+                }
+            }
+            Status="Test email sent to "+testAddress+".";
+        } catch(Exception ex){ Status="Test email failed: "+ex.Message; }
+    }
+
     void Save()
     {
         try {
@@ -219,7 +247,8 @@
 <div class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" role="switch" id="passwordRecoveryEnabled" name="passwordRecoveryEnabled" <%=PasswordRecoveryEnabled ? "checked" : ""%>><label class="form-check-label" for="passwordRecoveryEnabled">Enable password recovery</label></div>
 <div class="row g-3"><div class="col-md-8"><label class="form-label" for="smtpServer">SMTP relay</label><input class="form-control" id="smtpServer" name="smtpServer" value="<%=HttpUtility.HtmlAttributeEncode(SmtpServer)%>" maxlength="255" placeholder="mailrelay.example.local"/></div><div class="col-md-4"><label class="form-label" for="smtpPort">SMTP port</label><input class="form-control" type="number" min="1" max="65535" id="smtpPort" name="smtpPort" value="<%=SmtpPort%>"/></div>
 <div class="col-md-8"><label class="form-label" for="fromAddress">From address</label><input class="form-control" type="email" id="fromAddress" name="fromAddress" value="<%=HttpUtility.HtmlAttributeEncode(FromAddress)%>" maxlength="254" placeholder="rdweb@example.org"/></div><div class="col-md-4"><label class="form-label" for="recoveryCodeExpiryMinutes">Code expiry (minutes)</label><input class="form-control" type="number" min="1" max="60" id="recoveryCodeExpiryMinutes" name="recoveryCodeExpiryMinutes" value="<%=RecoveryCodeExpiryMinutes%>"/></div></div>
-<div class="form-text mt-3">Stage 1 configuration only. Enabling this setting does not yet expose password reset or send email. SMTP credentials and VIP/RADIUS secrets are not stored here.</div>
+<div class="row g-3 mt-1"><div class="col-md-8"><label class="form-label" for="testEmailAddress">Test email address</label><input class="form-control" type="email" id="testEmailAddress" name="testEmailAddress" maxlength="254" placeholder="your.external@email.example"/></div><div class="col-md-4 d-flex align-items-end"><button class="btn btn-outline-primary" type="submit" name="action" value="test-email">Send test email</button></div></div>
+<div class="form-text mt-3">Send test email uses the values currently entered above; they do not need to be saved first. Stage 1 does not yet expose password reset. SMTP credentials and VIP/RADIUS secrets are not stored here.</div>
 </div></div>
 <div class="card mb-3"><div class="card-body"><h2 class="h5">Carousel colour</h2>
 <div class="d-flex align-items-center gap-3"><input type="color" class="form-control form-control-color" id="carouselColour" name="carouselColour" value="<%=HttpUtility.HtmlAttributeEncode(CarouselColour)%>" title="Choose carousel colour"/><button class="btn btn-outline-secondary text-nowrap" type="submit" name="action" value="reset-colour">Reset to default</button><span class="text-muted">Choose the carousel colour for this environment.</span></div>
