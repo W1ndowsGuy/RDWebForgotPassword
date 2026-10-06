@@ -11,6 +11,7 @@
 <%@ Import Namespace="System.Xml.Linq" %>
 <%@ Import Namespace="System.DirectoryServices" %>
 <%@ Import Namespace="System.DirectoryServices.ActiveDirectory" %>
+<%@ Import Namespace="System.Net.Mail" %>
 <%@ Import Namespace="Microsoft.TerminalServices.Publishing.Portal" %>
 <%@ Import Namespace="Microsoft.TerminalServices.Publishing.Portal.FormAuthentication" %>
 
@@ -35,6 +36,14 @@
     public string carouselTitle3 = "Security";
     public string carouselText3 = "Warning: By logging in to this web page, you confirm that this computer complies with your organization's security policy.";
     public int daysToAdd = 30;
+    public bool passwordRecoveryEnabled = false;
+    public string recoverySmtpServer = "";
+    public int recoverySmtpPort = 25;
+    public string recoveryFromAddress = "";
+    public int recoveryCodeExpiryMinutes = 10;
+    public string recoveryEmail = "";
+    public bool recoveryEmailVerified = false;
+    public string recoveryStatus = "";
     const int PasswordExpiryThreshold = 10;
 
     protected void Page_PreInit(object sender, EventArgs e)
@@ -90,6 +99,13 @@
         // passwordExpiryDays are available before user expiry is calculated.
         LoadUserCustomizations();
         LoadCarouselConfiguration();
+        LoadRecoveryEmail();
+        if (Request.HttpMethod == "POST" && passwordRecoveryEnabled)
+        {
+            string recoveryAction = Request.Form["recoveryAction"] ?? "";
+            if (recoveryAction == "send-code") SendRecoveryEmailVerificationCode();
+            else if (recoveryAction == "verify-code") VerifyRecoveryEmailCode();
+        }
         isWebAdmin = IsMemberOfWebAdmins();
 
         try
@@ -197,6 +213,16 @@
             XElement pwd = doc.Root.Element("passwordExpiryDays");
             int configuredDays;
             if (pwd != null && Int32.TryParse(pwd.Value, out configuredDays) && configuredDays > 0 && configuredDays <= 3650) daysToAdd = configuredDays;
+            XElement recovery = doc.Root.Element("passwordRecovery");
+            if (recovery != null)
+            {
+                bool enabled;
+                XElement e = recovery.Element("enabled"); if (e != null && Boolean.TryParse(e.Value, out enabled)) passwordRecoveryEnabled = enabled;
+                XElement smtp = recovery.Element("smtpServer"); if (smtp != null) recoverySmtpServer = smtp.Value.Trim();
+                int port; XElement p = recovery.Element("smtpPort"); if (p != null && Int32.TryParse(p.Value, out port) && port > 0 && port <= 65535) recoverySmtpPort = port;
+                XElement from = recovery.Element("fromAddress"); if (from != null) recoveryFromAddress = from.Value.Trim();
+                int expiryMinutes; XElement expiry = recovery.Element("codeExpiryMinutes"); if (expiry != null && Int32.TryParse(expiry.Value, out expiryMinutes) && expiryMinutes >= 1 && expiryMinutes <= 60) recoveryCodeExpiryMinutes = expiryMinutes;
+            }
             XElement colour = doc.Root.Element("colour");
             if (colour != null && !String.IsNullOrWhiteSpace(colour.Value))
                 carouselColour = colour.Value.Trim();
@@ -217,6 +243,97 @@
             }
         }
         catch { }
+    }
+
+
+    private SearchResult FindCurrentAdUser(params string[] properties)
+    {
+        string fqdn = Domain.GetCurrentDomain().Name;
+        DirectoryEntry root = new DirectoryEntry("LDAP://" + fqdn);
+        DirectorySearcher ds = new DirectorySearcher(root);
+        ds.Filter = "(&(objectCategory=person)(objectClass=user)(sAMAccountName=" + GetSamAccountName().Replace("(", "\\28").Replace(")", "\\29") + "))";
+        foreach (string property in properties) ds.PropertiesToLoad.Add(property);
+        return ds.FindOne();
+    }
+
+    private void LoadRecoveryEmail()
+    {
+        if (!passwordRecoveryEnabled) return;
+        try {
+            SearchResult user = FindCurrentAdUser("mail", "extensionAttribute15");
+            if (user == null) return;
+            if (user.Properties["mail"].Count > 0) recoveryEmail = user.Properties["mail"][0].ToString();
+            recoveryEmailVerified = user.Properties["extensionAttribute15"].Count > 0 &&
+                user.Properties["extensionAttribute15"][0].ToString().Equals("RDWebRecoveryVerified", StringComparison.OrdinalIgnoreCase) &&
+                !String.IsNullOrWhiteSpace(recoveryEmail);
+        } catch { }
+    }
+
+    private void SendRecoveryEmailVerificationCode()
+    {
+        try {
+            string address = (Request.Form["recoveryEmail"] ?? "").Trim();
+            MailAddress parsed = new MailAddress(address);
+            if (!parsed.Address.Equals(address, StringComparison.OrdinalIgnoreCase)) throw new Exception("Enter a valid email address.");
+            if (String.IsNullOrWhiteSpace(recoverySmtpServer) || String.IsNullOrWhiteSpace(recoveryFromAddress)) throw new Exception("Password recovery email has not been configured by an administrator.");
+
+            byte[] bytes = new byte[4];
+            using (System.Security.Cryptography.RandomNumberGenerator rng = System.Security.Cryptography.RandomNumberGenerator.Create()) rng.GetBytes(bytes);
+            int number = (int)(BitConverter.ToUInt32(bytes, 0) % 1000000);
+            string code = number.ToString("D6");
+
+            Session["RDWebRecoveryPendingEmail"] = address;
+            Session["RDWebRecoveryCode"] = code;
+            Session["RDWebRecoveryCodeExpires"] = DateTime.UtcNow.AddMinutes(recoveryCodeExpiryMinutes);
+            Session["RDWebRecoveryAttempts"] = 0;
+
+            using (MailMessage message = new MailMessage()) {
+                message.From = new MailAddress(recoveryFromAddress);
+                message.To.Add(parsed);
+                message.Subject = "RDWeb recovery email verification";
+                message.Body = "Your RDWeb recovery email verification code is: " + code + "\r\n\r\nThis code expires in " + recoveryCodeExpiryMinutes + " minutes. If you did not request this code, you can ignore this email.";
+                using (SmtpClient client = new SmtpClient(recoverySmtpServer, recoverySmtpPort)) {
+                    client.DeliveryMethod = SmtpDeliveryMethod.Network;
+                    client.UseDefaultCredentials = false;
+                    client.Send(message);
+                }
+            }
+            recoveryEmail = address;
+            recoveryStatus = "A verification code has been sent. Enter it below to verify this recovery email.";
+        } catch (Exception ex) { recoveryStatus = "Could not send verification email: " + ex.Message; }
+    }
+
+    private void VerifyRecoveryEmailCode()
+    {
+        try {
+            string supplied = (Request.Form["verificationCode"] ?? "").Trim();
+            string pendingEmail = Session["RDWebRecoveryPendingEmail"] as string;
+            string expected = Session["RDWebRecoveryCode"] as string;
+            object expiryObject = Session["RDWebRecoveryCodeExpires"];
+            int attempts = Session["RDWebRecoveryAttempts"] == null ? 0 : (int)Session["RDWebRecoveryAttempts"];
+            if (String.IsNullOrEmpty(pendingEmail) || String.IsNullOrEmpty(expected) || expiryObject == null) throw new Exception("Request a new verification code.");
+            if (DateTime.UtcNow > (DateTime)expiryObject) throw new Exception("The verification code has expired. Request a new code.");
+            attempts++; Session["RDWebRecoveryAttempts"] = attempts;
+            if (attempts > 5) throw new Exception("Too many incorrect attempts. Request a new code.");
+            if (!String.Equals(supplied, expected, StringComparison.Ordinal)) throw new Exception("The verification code is incorrect.");
+
+            SearchResult user = FindCurrentAdUser("distinguishedName");
+            if (user == null || user.Properties["distinguishedName"].Count == 0) throw new Exception("Your Active Directory account could not be located.");
+            string dn = user.Properties["distinguishedName"][0].ToString();
+            using (DirectoryEntry account = new DirectoryEntry("LDAP://" + dn)) {
+                account.Properties["mail"].Value = pendingEmail;
+                account.Properties["extensionAttribute15"].Value = "RDWebRecoveryVerified";
+                account.CommitChanges();
+            }
+
+            Session.Remove("RDWebRecoveryPendingEmail");
+            Session.Remove("RDWebRecoveryCode");
+            Session.Remove("RDWebRecoveryCodeExpires");
+            Session.Remove("RDWebRecoveryAttempts");
+            recoveryEmail = pendingEmail;
+            recoveryEmailVerified = true;
+            recoveryStatus = "Recovery email verified and saved.";
+        } catch (Exception ex) { recoveryStatus = "Verification failed: " + ex.Message; }
     }
 
     protected string RenderResources()
@@ -438,6 +555,33 @@ function launchRdpResource(rdpContents, url) {
                 <p class="text-muted mb-0">Select a resource to download and launch its RDP connection.</p>
             </div>
         </div>
+
+
+        <% if (passwordRecoveryEnabled) { %>
+        <div class="card mb-4">
+            <div class="card-body">
+                <h2 class="h5">Password recovery email</h2>
+                <% if (!String.IsNullOrEmpty(recoveryStatus)) { %><div class="alert alert-info"><%= HttpUtility.HtmlEncode(recoveryStatus) %></div><% } %>
+                <% if (recoveryEmailVerified) { %>
+                    <div class="alert alert-success mb-0">Recovery email verified: <strong><%= HttpUtility.HtmlEncode(recoveryEmail) %></strong></div>
+                <% } else { %>
+                    <p class="text-muted">Register an external email address that you can access if you forget your RDWeb password. The address is not saved until you verify the emailed code.</p>
+                    <form method="post" action="default.aspx" class="row g-2 mb-3">
+                        <input type="hidden" name="recoveryAction" value="send-code" />
+                        <div class="col-md-8"><input class="form-control" type="email" name="recoveryEmail" value="<%= HttpUtility.HtmlAttributeEncode(recoveryEmail) %>" maxlength="254" placeholder="External recovery email" required /></div>
+                        <div class="col-md-4"><button class="btn btn-outline-primary w-100" type="submit">Send verification code</button></div>
+                    </form>
+                    <% if (Session["RDWebRecoveryPendingEmail"] != null) { %>
+                    <form method="post" action="default.aspx" class="row g-2">
+                        <input type="hidden" name="recoveryAction" value="verify-code" />
+                        <div class="col-md-8"><input class="form-control" name="verificationCode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="6-digit verification code" required /></div>
+                        <div class="col-md-4"><button class="btn btn-primary w-100" type="submit">Verify and save</button></div>
+                    </form>
+                    <% } %>
+                <% } %>
+            </div>
+        </div>
+        <% } %>
 
         <div class="resource-grid">
             <%= RenderResources() %>
