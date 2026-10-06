@@ -562,19 +562,27 @@ function launchRdpResource(rdpContents, url) {
                 <div class="vr mx-2"></div>
                 <div>
                 <div class="h4 mb-0">Welcome <%= HttpUtility.HtmlEncode(displayName) %>, <%= HttpUtility.HtmlEncode(logonHeader.ToLowerInvariant()) %></div>
-                <% if (passwordRecoveryEnabled && recoveryEmailVerified) { %>
+                <% if ((passwordRecoveryEnabled && recoveryEmailVerified) || !String.IsNullOrEmpty(passwordExpiration)) { %>
                 <div class="small text-muted mt-2">
-                    <div>Recovery email, <%= HttpUtility.HtmlEncode(recoveryEmail) %></div>
-                    <form method="post" action="default.aspx" class="d-block mt-1">
-                        <input type="hidden" name="recoveryAction" value="change-email" />
-                        <button type="submit" class="border-0 bg-transparent text-primary p-0" style="font-size:0.75rem; text-decoration:underline;">Change recovery email</button>
-                    </form>
-                </div>
-                <% } %>
-                <% if (!String.IsNullOrEmpty(passwordExpiration)) { %>
-                <div class="small mt-1">
-                    <div><%= HttpUtility.HtmlEncode(passwordExpiration.Replace(" Click here to reset now.", "")) %></div>
-                    <a href="password.aspx" class="<%= passwordDaysRemaining >= 0 && passwordDaysRemaining < 5 ? "text-danger fw-bold" : "text-primary" %>" style="font-size:0.75rem;">Change password</a>
+                    <div class="d-flex flex-wrap gap-3">
+                        <% if (passwordRecoveryEnabled && recoveryEmailVerified) { %>
+                        <span>Recovery email, <%= HttpUtility.HtmlEncode(recoveryEmail) %></span>
+                        <% } %>
+                        <% if (!String.IsNullOrEmpty(passwordExpiration)) { %>
+                        <span><%= HttpUtility.HtmlEncode(passwordExpiration.Replace(" Click here to reset now.", "")) %></span>
+                        <% } %>
+                    </div>
+                    <div class="d-flex flex-wrap gap-3 mt-1">
+                        <% if (passwordRecoveryEnabled && recoveryEmailVerified) { %>
+                        <form method="post" action="default.aspx" class="d-inline">
+                            <input type="hidden" name="recoveryAction" value="change-email" />
+                            <button type="submit" class="border-0 bg-transparent text-primary p-0" style="font-size:0.75rem; text-decoration:underline;">Change recovery email</button>
+                        </form>
+                        <% } %>
+                        <% if (!String.IsNullOrEmpty(passwordExpiration)) { %>
+                        <a href="password.aspx" class="<%= passwordDaysRemaining >= 0 && passwordDaysRemaining < 5 ? "text-danger fw-bold" : "text-primary" %>" style="font-size:0.75rem;">Change password</a>
+                        <% } %>
+                    </div>
                 </div>
                 <% } %>
                 </div>
