@@ -331,13 +331,37 @@
             recoveryEmailVerified = true;
             recoveryStatus = "Recovery email verified and saved.";
         } catch (Exception ex) {
-            string windowsIdentity = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
+            System.Security.Principal.WindowsIdentity wi = System.Security.Principal.WindowsIdentity.GetCurrent();
+            string windowsIdentity = wi == null ? "(none)" : wi.Name;
+            string authenticationType = wi == null ? "(none)" : (wi.AuthenticationType ?? "(none)");
+            string impersonationLevel = wi == null ? "(none)" : wi.ImpersonationLevel.ToString();
             string threadIdentity = System.Threading.Thread.CurrentPrincipal == null || System.Threading.Thread.CurrentPrincipal.Identity == null
                 ? "(none)"
                 : System.Threading.Thread.CurrentPrincipal.Identity.Name;
+
+            string ldapServer = "(unknown)";
+            string ldapBindResult = "(not tested)";
+            try {
+                string fqdn = Domain.GetCurrentDomain().Name;
+                DomainController dc = Domain.GetCurrentDomain().FindDomainController();
+                ldapServer = dc == null ? fqdn : dc.Name;
+                using (DirectoryEntry bindTest = new DirectoryEntry("LDAP://" + ldapServer + "/RootDSE")) {
+                    object defaultNamingContext = bindTest.Properties["defaultNamingContext"].Value;
+                    ldapBindResult = defaultNamingContext == null
+                        ? "Bind succeeded"
+                        : "Bind succeeded (" + defaultNamingContext.ToString() + ")";
+                }
+            } catch (Exception bindEx) {
+                ldapBindResult = "Bind failed: " + bindEx.Message;
+            }
+
             recoveryStatus = "Verification failed: " + ex.Message +
                 " | Windows identity: " + windowsIdentity +
-                " | ASP.NET identity: " + threadIdentity;
+                " | Authentication type: " + authenticationType +
+                " | Impersonation level: " + impersonationLevel +
+                " | ASP.NET identity: " + threadIdentity +
+                " | LDAP server: " + ldapServer +
+                " | LDAP bind: " + ldapBindResult;
         }
     }
 
