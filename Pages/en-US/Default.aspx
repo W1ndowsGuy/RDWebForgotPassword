@@ -311,7 +311,10 @@
                     client.Send(message);
                 }
             }
+            // The address is only pending until the emailed code is verified.
+            // Keep the page in enrolment/change mode so the verification-code form is rendered.
             recoveryEmail = address;
+            recoveryEmailVerified = false;
             recoveryStatus = "A verification code has been sent. Enter it below to verify this recovery email.";
         } catch (Exception ex) { recoveryStatus = "Could not send verification email: " + ex.Message; }
     }
