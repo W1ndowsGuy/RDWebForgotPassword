@@ -2,6 +2,9 @@
 <%@ Import Namespace="System" %>
 <%@ Import Namespace="System.Web" %>
 <%@ Import Namespace="System.Xml.Linq" %>
+<%@ Import Namespace="System.IO" %>
+<%@ Import Namespace="System.IO.Pipes" %>
+<%@ Import Namespace="System.Text" %>
 
 <script runat="server">
 public string environmentName = "Work Resources";
@@ -26,7 +29,14 @@ protected void Page_Load(object sender, EventArgs e)
         return;
     }
 
-    if (String.Equals(Request.HttpMethod, "POST", StringComparison.OrdinalIgnoreCase)) VerifyCode();
+    if (String.Equals(Request.HttpMethod, "POST", StringComparison.OrdinalIgnoreCase))
+    {
+        if (Session["RDWebRecoveryEmailOtpVerified"] is bool && (bool)Session["RDWebRecoveryEmailOtpVerified"] &&
+            Request.Form["newPassword"] != null)
+            ResetPassword();
+        else
+            VerifyCode();
+    }
 }
 
 private void VerifyCode()
@@ -56,10 +66,55 @@ private void VerifyCode()
         Session.Remove("RDWebPasswordResetEmailAttempts");
         Session["RDWebRecoveryEmailOtpVerified"] = true;
         verified = true;
-        statusMessage = "Recovery E-Mail verified. Identity checks are complete.";
+        statusMessage = "Recovery E-Mail verified. Identity checks are complete. Enter your new password below.";
     }
     catch (Exception ex)
     {
+        statusMessage = ex.Message;
+    }
+}
+
+private void ResetPassword()
+{
+    try
+    {
+        if (!(Session["RDWebRecoveryEmailOtpVerified"] is bool) || !(bool)Session["RDWebRecoveryEmailOtpVerified"])
+            throw new Exception("Your recovery verification is no longer valid.");
+
+        string sam = Session["RDWebRecoveryCandidateSam"] as string;
+        string password = Request.Form["newPassword"] ?? "";
+        string confirm = Request.Form["confirmPassword"] ?? "";
+        if (String.IsNullOrWhiteSpace(sam)) throw new Exception("Your recovery request has expired. Please start again.");
+        if (String.IsNullOrEmpty(password) || password != confirm) throw new Exception("The new passwords do not match.");
+        if (password.Length > 256) throw new Exception("The new password is too long.");
+
+        string payload = Convert.ToBase64String(Encoding.UTF8.GetBytes(password));
+        string reply;
+        using (NamedPipeClientStream pipe = new NamedPipeClientStream(".", "RDWebRecoveryHelper", PipeDirection.InOut))
+        {
+            pipe.Connect(3000);
+            using (StreamWriter writer = new StreamWriter(pipe, new UTF8Encoding(false), 4096, true))
+            using (StreamReader reader = new StreamReader(pipe, Encoding.UTF8, false, 4096, true))
+            {
+                writer.AutoFlush = true;
+                writer.WriteLine("RESETPASSWORD|" + sam + "|" + payload);
+                reply = reader.ReadLine();
+            }
+        }
+        if (String.IsNullOrEmpty(reply) || !reply.StartsWith("OK|", StringComparison.Ordinal))
+            throw new Exception("The password could not be reset. It may not meet the domain password policy.");
+
+        Session.Remove("RDWebRecoveryEmailOtpVerified");
+        Session.Remove("RDWebRecoveryVipVerified");
+        Session.Remove("RDWebRecoveryCandidateSam");
+        Session.Remove("RDWebRecoveryCandidateEmail");
+        Session.Remove("RDWebRecoveryCandidateExpires");
+        verified = true;
+        statusMessage = "Your password has been reset successfully. You can now sign in with your new password.";
+    }
+    catch (Exception ex)
+    {
+        verified = true;
         statusMessage = ex.Message;
     }
 }
@@ -94,9 +149,16 @@ html,body{min-height:100%}body{min-height:100vh;background:url('../images/EngOne
 <div class="col-lg-6 recovery-side"><div class="recovery-panel">
 <h2 class="text-center mb-3">Recovery E-Mail Verification</h2>
 <% if (!String.IsNullOrEmpty(statusMessage)) { %><div class="alert <%=verified ? "alert-success" : "alert-warning"%>"><%=HttpUtility.HtmlEncode(statusMessage)%></div><% } %>
-<% if (verified) { %>
+<% if (verified && Session["RDWebRecoveryEmailOtpVerified"] is bool && (bool)Session["RDWebRecoveryEmailOtpVerified"]) { %>
 <p>Username, registered Recovery E-Mail, Symantec VIP and E-Mail OTP have now been verified.</p>
-<p class="small mb-0">Password reset is not enabled yet. This test stops here intentionally.</p>
+<form method="post" action="recoveremail.aspx" autocomplete="off">
+<div class="mb-3"><label class="form-label" for="newPassword">New Password</label><input class="form-control form-control-lg" id="newPassword" name="newPassword" type="password" autocomplete="new-password" required /></div>
+<div class="mb-3"><label class="form-label" for="confirmPassword">Confirm New Password</label><input class="form-control form-control-lg" id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required /></div>
+<button type="submit" class="btn btn-secondary btn-lg w-100">Reset Password</button>
+</form>
+<% } else if (verified) { %>
+<p class="mb-3">Your password has been reset. You can now sign in using the new password.</p>
+<a class="btn btn-secondary btn-lg w-100" href="login.aspx">Return to Sign In</a>
 <% } else if (Session["RDWebRecoveryVipVerified"] is bool && (bool)Session["RDWebRecoveryVipVerified"]) { %>
 <p>A 6-digit verification code has been sent to your registered Recovery E-Mail.</p>
 <form method="post" action="recoveremail.aspx" autocomplete="off">
