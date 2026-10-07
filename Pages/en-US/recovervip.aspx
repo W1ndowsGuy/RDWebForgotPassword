@@ -2,11 +2,17 @@
 <%@ Import Namespace="System" %>
 <%@ Import Namespace="System.Web" %>
 <%@ Import Namespace="System.Xml.Linq" %>
+<%@ Import Namespace="System.Net.Mail" %>
+<%@ Import Namespace="System.Security.Cryptography" %>
 
 <script runat="server">
     public string environmentName = "Work Resources";
     public string statusMessage = "";
     public bool validRecoveryState = false;
+    private string recoverySmtpServer = "";
+    private int recoverySmtpPort = 25;
+    private string recoveryFromAddress = "";
+    private int recoveryCodeExpiryMinutes = 10;
 
     protected void Page_Load(object sender, EventArgs e)
     {
@@ -26,12 +32,60 @@
             expiry is DateTime &&
             DateTime.UtcNow <= (DateTime)expiry;
 
+        if (validRecoveryState && IsPostBack)
+        {
+            SendRecoveryResetCode();
+            return;
+        }
+
         if (!validRecoveryState)
         {
             Session.Remove("RDWebRecoveryCandidateSam");
             Session.Remove("RDWebRecoveryCandidateEmail");
             Session.Remove("RDWebRecoveryCandidateExpires");
             statusMessage = "Your password recovery request has expired. Please start again.";
+        }
+    }
+
+
+    private void SendRecoveryResetCode()
+    {
+        try
+        {
+            string email = Convert.ToString(Session["RDWebRecoveryCandidateEmail"]);
+            if (String.IsNullOrWhiteSpace(email) || String.IsNullOrWhiteSpace(recoverySmtpServer) || String.IsNullOrWhiteSpace(recoveryFromAddress))
+                throw new Exception("Password recovery e-mail is not configured.");
+
+            byte[] bytes = new byte[4];
+            using (RandomNumberGenerator rng = RandomNumberGenerator.Create()) rng.GetBytes(bytes);
+            string code = ((int)(BitConverter.ToUInt32(bytes, 0) % 1000000)).ToString("D6");
+
+            Session["RDWebPasswordResetEmailCode"] = code;
+            Session["RDWebPasswordResetEmailCodeExpires"] = DateTime.UtcNow.AddMinutes(recoveryCodeExpiryMinutes);
+            Session["RDWebPasswordResetEmailAttempts"] = 0;
+            Session["RDWebRecoveryVipVerified"] = true;
+
+            using (MailMessage message = new MailMessage())
+            {
+                message.From = new MailAddress(recoveryFromAddress);
+                message.To.Add(new MailAddress(email));
+                message.Subject = "RDWeb password recovery verification";
+                message.Body = "Your RDWeb password recovery verification code is: " + code +
+                    "\r\n\r\nThis code expires in " + recoveryCodeExpiryMinutes +
+                    " minutes. If you did not request a password reset, you can ignore this email.";
+                using (SmtpClient client = new SmtpClient(recoverySmtpServer, recoverySmtpPort))
+                {
+                    client.DeliveryMethod = SmtpDeliveryMethod.Network;
+                    client.Send(message);
+                }
+            }
+
+            Response.Redirect("recoveremail.aspx", false);
+            Context.ApplicationInstance.CompleteRequest();
+        }
+        catch
+        {
+            statusMessage = "Password recovery could not continue. Please start again or contact support.";
         }
     }
 
@@ -43,6 +97,14 @@
             if (!System.IO.File.Exists(path)) return;
             XDocument doc = XDocument.Load(path);
             XElement env = doc.Root.Element("environmentName");
+            XElement recovery = doc.Root.Element("passwordRecovery");
+            if (recovery != null)
+            {
+                XElement smtp = recovery.Element("smtpServer"); if (smtp != null) recoverySmtpServer = smtp.Value.Trim();
+                int port; XElement smtpPort = recovery.Element("smtpPort"); if (smtpPort != null && Int32.TryParse(smtpPort.Value, out port)) recoverySmtpPort = port;
+                XElement from = recovery.Element("fromAddress"); if (from != null) recoveryFromAddress = from.Value.Trim();
+                int mins; XElement expiryMinutes = recovery.Element("codeExpiryMinutes"); if (expiryMinutes != null && Int32.TryParse(expiryMinutes.Value, out mins) && mins >= 1 && mins <= 60) recoveryCodeExpiryMinutes = mins;
+            }
             if (env != null && !String.IsNullOrWhiteSpace(env.Value))
                 environmentName = env.Value.Trim();
         }
@@ -78,7 +140,7 @@ html,body{min-height:100%}body{min-height:100vh;background:url('../images/EngOne
 <div class="mb-3"><label class="form-label" for="SecurityCode">Security Code</label><input class="form-control form-control-lg" id="SecurityCode" name="securitycode" type="text" runat="server" inputmode="numeric" autocomplete="off" required /></div>
 <button type="submit" class="btn btn-secondary btn-lg w-100">Verify Security Code</button>
 </form>
-<p class="small mt-3 mb-0">Test mode: this posts the validated recovery username and Security Code through the existing Symantec VIP IIS plugin. No AD password is supplied and no password reset or e-mail OTP is triggered yet.</p>
+<p class="small mt-3 mb-0">After successful VIP verification, a one-time code will be sent to your registered Recovery E-Mail.</p>
 <% } %>
 </div></div></div></div>
 <script src="../js/bootstrap-5.3.8.bundle.min.js"></script>
