@@ -31,9 +31,19 @@ namespace RDWebRecoveryHelper
    }}catch(Exception ex){try{EventLog.WriteEntry("RDWebRecoveryHelper",ex.ToString(),EventLogEntryType.Error);}catch{} Thread.Sleep(500);}}}
   private static string ProcessRequest(string request){try{
    if(String.IsNullOrWhiteSpace(request))return "ERROR|Empty request";
-   string[] parts=request.Split(new[]{'|'},3); if(parts.Length!=3||parts[0]!="SETMAIL")return "ERROR|Unsupported request";
-   string sam=parts[1].Trim(),email=parts[2].Trim(); if(!IsValidSam(sam))return "ERROR|Invalid account name"; if(!IsValidEmail(email))return "ERROR|Invalid email address";
-   SetMail(sam,email); return "OK|Recovery email saved";
+   string[] parts=request.Split(new[]{'|'},3); if(parts.Length!=3)return "ERROR|Invalid request";
+   string operation=parts[0],sam=parts[1].Trim(); if(!IsValidSam(sam))return "ERROR|Invalid account name";
+   if(operation=="SETMAIL"){
+    string email=parts[2].Trim(); if(!IsValidEmail(email))return "ERROR|Invalid email address";
+    SetMail(sam,email); return "OK|Recovery email saved";
+   }
+   if(operation=="RESETPASSWORD"){
+    string password;
+    try{password=Encoding.UTF8.GetString(Convert.FromBase64String(parts[2]));}catch{return "ERROR|Invalid password payload";}
+    if(String.IsNullOrEmpty(password)||password.Length>256)return "ERROR|Invalid password";
+    ResetPassword(sam,password); return "OK|Password reset";
+   }
+   return "ERROR|Unsupported request";
   }catch(Exception ex){return "ERROR|"+Safe(ex.Message);}}
   private static bool IsValidSam(string v){if(String.IsNullOrWhiteSpace(v)||v.Length>64)return false;foreach(char c in v)if(!(Char.IsLetterOrDigit(c)||c=='.'||c=='-'||c=='_'))return false;return true;}
   private static bool IsValidEmail(string v){if(String.IsNullOrWhiteSpace(v)||v.Length>254)return false;try{var a=new MailAddress(v);return String.Equals(a.Address,v,StringComparison.OrdinalIgnoreCase);}catch{return false;}}
@@ -45,6 +55,14 @@ namespace RDWebRecoveryHelper
     SearchResult result=searcher.FindOne(); if(result==null||result.Properties["distinguishedName"].Count==0)throw new InvalidOperationException("Account not found");
     string dn=result.Properties["distinguishedName"][0].ToString(); string dc=Domain.GetCurrentDomain().FindDomainController().Name;
     using(var account=new DirectoryEntry("LDAP://"+dc+"/"+dn)){object bind=account.NativeObject;account.Properties["mail"].Value=email;account.CommitChanges();}
+   }}
+  private static void ResetPassword(string sam,string password){
+   string fqdn=Domain.GetCurrentDomain().Name;
+   using(var root=new DirectoryEntry("LDAP://"+fqdn))using(var searcher=new DirectorySearcher(root)){
+    searcher.Filter="(&(objectCategory=person)(objectClass=user)(sAMAccountName="+EscapeLdap(sam)+"))"; searcher.PropertiesToLoad.Add("distinguishedName");
+    SearchResult result=searcher.FindOne(); if(result==null||result.Properties["distinguishedName"].Count==0)throw new InvalidOperationException("Account not found");
+    string dn=result.Properties["distinguishedName"][0].ToString(); string dc=Domain.GetCurrentDomain().FindDomainController().Name;
+    using(var account=new DirectoryEntry("LDAP://"+dc+"/"+dn)){object bind=account.NativeObject;account.Invoke("SetPassword",new object[]{password});account.CommitChanges();}
    }}
   private static string Safe(string v){if(String.IsNullOrEmpty(v))return "Operation failed";return v.Replace("|","/").Replace("\r"," ").Replace("\n"," ");}
  }
