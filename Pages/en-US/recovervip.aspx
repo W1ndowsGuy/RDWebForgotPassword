@@ -66,10 +66,13 @@ html,body{min-height:100%}body{min-height:100vh;background:url('../images/EngOne
 <% if (!String.IsNullOrEmpty(statusMessage)) { %><div class="alert alert-warning"><%=HttpUtility.HtmlEncode(statusMessage)%></div><div class="text-center"><a class="text-white" href="recover.aspx">Start again</a></div>
 <% } else { %>
 <p>Verify your identity with your VIP Security Code to continue password recovery.</p>
-<div class="mb-3"><label class="form-label" for="securitycode">Security Code</label><input class="form-control form-control-lg" id="securitycode" name="securitycode" type="text" autocomplete="one-time-code"/></div>
+<form method="post" action="recovervip.aspx" autocomplete="off">
+<input type="hidden" id="DomainUserName" name="DomainUserName" value="<%=HttpUtility.HtmlAttributeEncode(Convert.ToString(Session["RDWebRecoveryCandidateSam"]))%>" />
 <input type="hidden" id="SymcUserName" name="SymcUserName" value="<%=HttpUtility.HtmlAttributeEncode(Convert.ToString(Session["RDWebRecoveryCandidateSam"]))%>" />
-<button type="button" class="btn btn-secondary btn-lg w-100">Verify Security Code</button>
-<p class="small mt-3 mb-0">This endpoint is protected by the existing Symantec VIP IIS plugin. This checkpoint is for confirming the plugin challenge before we enable the post-verification e-mail OTP stage.</p>
+<div class="mb-3"><label class="form-label" for="securitycode">Security Code</label><input class="form-control form-control-lg" id="securitycode" name="securitycode" type="text" inputmode="numeric" autocomplete="one-time-code" required /></div>
+<button type="submit" class="btn btn-secondary btn-lg w-100">Verify Security Code</button>
+</form>
+<p class="small mt-3 mb-0">Test mode: this posts the validated recovery username and Security Code through the existing Symantec VIP IIS plugin. No AD password is supplied and no password reset or e-mail OTP is triggered yet.</p>
 <% } %>
 </div></div></div></div>
 <script src="../js/bootstrap-5.3.8.bundle.min.js"></script>
