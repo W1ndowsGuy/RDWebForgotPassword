@@ -50,7 +50,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>VIP Verification</title>
 <link href="../css/bootstrap-5.3.8.min.css" rel="stylesheet" />
-<script src="../webscripts-domain.js"></script>
 <style>
 html,body{min-height:100%}body{min-height:100vh;background:url('../images/EngOne.jpg') center/cover fixed no-repeat}
 .page-wrap{min-height:100vh;display:flex;align-items:center}.recovery-shell{background:rgba(255,255,255,.30);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.58);border-radius:1.25rem;box-shadow:0 .75rem 2rem rgba(0,0,0,.18);overflow:hidden}
@@ -67,7 +66,7 @@ html,body{min-height:100%}body{min-height:100vh;background:url('../images/EngOne
 <% if (!String.IsNullOrEmpty(statusMessage)) { %><div class="alert alert-warning"><%=HttpUtility.HtmlEncode(statusMessage)%></div><div class="text-center"><a class="text-white" href="recover.aspx">Start again</a></div>
 <% } else { %>
 <p>Verify your identity with your VIP Security Code to continue password recovery.</p>
-<form id="FrmLogin" name="FrmLogin" method="post" action="recovervip.aspx" autocomplete="off" onsubmit="return onRecoveryVipSubmit();">
+<form id="FrmLogin" name="FrmLogin" method="post" action="recovervip.aspx" autocomplete="off">
 <input type="hidden" id="DomainUserName" name="DomainUserName" value="<%=HttpUtility.HtmlAttributeEncode(Convert.ToString(Session["RDWebRecoveryCandidateSam"]))%>" />
 <input type="hidden" id="SymcUserName" name="SymcUserName" value="DomainUserName=" />
 <div class="mb-3"><label class="form-label" for="SecurityCode">Security Code</label><input class="form-control form-control-lg" id="SecurityCode" name="securitycode" type="text" inputmode="numeric" autocomplete="one-time-code" required /></div>
@@ -77,12 +76,4 @@ html,body{min-height:100%}body{min-height:100vh;background:url('../images/EngOne
 <% } %>
 </div></div></div></div>
 <script src="../js/bootstrap-5.3.8.bundle.min.js"></script>
-<script>
-function onRecoveryVipSubmit(){
-    var u=document.getElementById("DomainUserName");
-    var s=document.getElementById("SymcUserName");
-    if(s && u){ s.value="DomainUserName=" + u.value; }
-    return true;
-}
-</script>
 </body></html>
