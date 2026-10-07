@@ -13,6 +13,12 @@
         Response.Cache.SetCacheability(HttpCacheability.NoCache);
         LoadConfiguration();
 
+        if (!IsPostBack && Session["RDWebRecoveryCandidateSam"] != null)
+        {
+            DomainUserName.Value = Convert.ToString(Session["RDWebRecoveryCandidateSam"]);
+            SymcUserName.Value = "DomainUserName=";
+        }
+
         object expiry = Session["RDWebRecoveryCandidateExpires"];
         validRecoveryState =
             Session["RDWebRecoveryCandidateSam"] != null &&
@@ -67,9 +73,9 @@ html,body{min-height:100%}body{min-height:100vh;background:url('../images/EngOne
 <% } else { %>
 <p>Verify your identity with your VIP Security Code to continue password recovery.</p>
 <form id="FrmLogin" name="FrmLogin" method="post" action="recovervip.aspx" autocomplete="off">
-<input type="hidden" id="DomainUserName" name="DomainUserName" value="<%=HttpUtility.HtmlAttributeEncode(Convert.ToString(Session["RDWebRecoveryCandidateSam"]))%>" />
-<input type="hidden" id="SymcUserName" name="SymcUserName" value="DomainUserName=" />
-<div class="mb-3"><label class="form-label" for="SecurityCode">Security Code</label><input class="form-control form-control-lg" id="SecurityCode" name="securitycode" type="text" inputmode="numeric" autocomplete="one-time-code" required /></div>
+<input type="hidden" id="DomainUserName" name="DomainUserName" runat="server" />
+<input type="hidden" id="SymcUserName" value="DomainUserName=" runat="server" />
+<div class="mb-3"><label class="form-label" for="SecurityCode">Security Code</label><input class="form-control form-control-lg" id="SecurityCode" name="securitycode" type="text" runat="server" inputmode="numeric" autocomplete="off" required /></div>
 <button type="submit" class="btn btn-secondary btn-lg w-100">Verify Security Code</button>
 </form>
 <p class="small mt-3 mb-0">Test mode: this posts the validated recovery username and Security Code through the existing Symantec VIP IIS plugin. No AD password is supplied and no password reset or e-mail OTP is triggered yet.</p>
