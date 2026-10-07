@@ -26,7 +26,7 @@ protected void Page_Load(object sender, EventArgs e)
         return;
     }
 
-    if (IsPostBack) VerifyCode();
+    if (String.Equals(Request.HttpMethod, "POST", StringComparison.OrdinalIgnoreCase)) VerifyCode();
 }
 
 private void VerifyCode()
