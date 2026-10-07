@@ -4,8 +4,6 @@
 <%@ Import Namespace="System.Xml.Linq" %>
 <%@ Import Namespace="System.Net.Mail" %>
 <%@ Import Namespace="System.Security.Cryptography" %>
-<%@ Import Namespace="System.IO" %>
-<%@ Import Namespace="System.Text" %>
 
 <script runat="server">
     public string environmentName = "Work Resources";
@@ -19,7 +17,6 @@
     protected void Page_Load(object sender, EventArgs e)
     {
         Response.Cache.SetCacheability(HttpCacheability.NoCache);
-        WriteRecoveryTrace("ENTER Page_Load");
         LoadConfiguration();
 
         if (!IsPostBack && Session["RDWebRecoveryCandidateSam"] != null)
@@ -35,9 +32,11 @@
             expiry is DateTime &&
             DateTime.UtcNow <= (DateTime)expiry;
 
-        WriteRecoveryTrace("STATE validRecoveryState=" + validRecoveryState + "; IsPostBack=" + IsPostBack);
+        bool vipPost = String.Equals(Request.HttpMethod, "POST", StringComparison.OrdinalIgnoreCase) &&
+            Request.Form["DomainUserName"] != null &&
+            Request.Form["SecurityCode"] != null;
 
-        if (validRecoveryState && IsPostBack)
+        if (validRecoveryState && vipPost)
         {
             SendRecoveryResetCode();
             return;
@@ -53,24 +52,6 @@
     }
 
 
-
-    private void WriteRecoveryTrace(string marker)
-    {
-        try
-        {
-            StringBuilder sb = new StringBuilder();
-            sb.AppendLine("------------------------------------------------------------");
-            sb.AppendLine(DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff") + " UTC  " + marker);
-            sb.AppendLine("Method: " + Request.HttpMethod);
-            sb.AppendLine("IsPostBack: " + IsPostBack);
-            sb.AppendLine("Path: " + Request.Url.AbsolutePath);
-            sb.AppendLine("Form keys: " + String.Join(", ", Request.Form.AllKeys ?? new string[0]));
-            sb.AppendLine("Cookie names: " + String.Join(", ", Request.Cookies.AllKeys ?? new string[0]));
-            sb.AppendLine("Header names: " + String.Join(", ", Request.Headers.AllKeys ?? new string[0]));
-            File.AppendAllText(@"C:\Windows\Temp\RDWeb-Recovery-Trace.log", sb.ToString());
-        }
-        catch { }
-    }
 
     private void SendRecoveryResetCode()
     {
