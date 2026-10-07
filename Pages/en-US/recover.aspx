@@ -102,6 +102,7 @@
                     searcher.Filter = "(&(objectCategory=person)(objectClass=user)(sAMAccountName=" + EscapeLdap(sam) + "))";
                     searcher.SearchScope = SearchScope.Subtree;
                     searcher.PropertiesToLoad.Add("mail");
+                    searcher.PropertiesToLoad.Add("adminCount");
                     SearchResult result = searcher.FindOne();
 
                     bool matched = result != null &&
@@ -112,6 +113,20 @@
 
                     if (matched)
                     {
+                        bool privilegedAccount =
+                            result.Properties.Contains("adminCount") &&
+                            result.Properties["adminCount"].Count > 0 &&
+                            Convert.ToString(result.Properties["adminCount"][0]) == "1";
+
+                        if (privilegedAccount)
+                        {
+                            Session.Remove("RDWebRecoveryCandidateSam");
+                            Session.Remove("RDWebRecoveryCandidateEmail");
+                            Session.Remove("RDWebRecoveryCandidateExpires");
+                            statusMessage = "Password recovery cannot proceed for this privileged account. Please contact an administrator.";
+                            return;
+                        }
+
                         Session["RDWebRecoveryCandidateSam"] = sam;
                         Session["RDWebRecoveryCandidateEmail"] = email;
                         Session["RDWebRecoveryCandidateExpires"] = DateTime.UtcNow.AddMinutes(10);
